@@ -10,7 +10,7 @@ The dropdown uses native macOS symbols for battery, status, update time, Refresh
 
 The icon changes with the connection: cable connector, USB receiver, or Bluetooth rune. The app checks every five seconds and after waking from sleep. It gives a cable connection priority, then a connected Bluetooth mouse, then a responding wireless receiver. An idle receiver alone does not count as an active mouse connection. No USB port is hard-coded.
 
-When the mouse is disconnected or does not respond through its receiver, the menu bar shows a circled X and **Not connected**. The menu suggests waking the mouse or checking its connection. USB access and read errors are labelled separately as **Read error**.
+When the mouse is disconnected or its receiver reports no connected mouse, the menu bar shows a circled X and **Not connected**. The menu suggests waking the mouse or checking its connection. Receiver timeouts, USB access failures, and read errors are labelled separately as **Read error**.
 
 The included build is for Apple Silicon and macOS 13 or later. It is locally ad-hoc signed, not notarized for distribution. It does not add itself to login items, use a network service, install a driver, or change mouse configuration.
 
@@ -18,6 +18,14 @@ The included build is for Apple Silicon and macOS 13 or later. It is locally ad-
 ./build.sh
 open "dist/Keychron Charge.app"
 ```
+
+## Automatic Natural Scrolling
+
+While the app is running, it turns macOS **Natural Scrolling off when the M3 is connected** and **on when it disconnects**. This is the shared macOS setting, so it also changes trackpad scrolling. Cable, receiver, and Bluetooth connections all use the same rule. The menu shows the current setting.
+
+Connection checks run every five seconds. A receiver reporting no connected mouse counts as disconnected even if the receiver remains plugged in. A timeout or battery-read error does not establish a disconnection: the app keeps the scrolling setting unchanged. A directly enumerated cable/Bluetooth mouse still counts as connected if its battery read fails.
+
+The app applies changes immediately and saves the preference, only writing when the requested state differs. While running, it will reapply its rule if you change Natural Scrolling manually. Quitting stops automation and leaves the last setting in place. The implementation uses a native, unsupported macOS helper; a missing helper or failed change is reported in the menu. See [implementation and validation](docs/natural-scrolling.md).
 
 ## Battery sources
 
@@ -39,9 +47,12 @@ Scope: this M3-A3, its D031 USB-C receiver, and one mouse at a time. USB-A D030 
 ./test.sh
 "dist/Keychron Charge.app/Contents/MacOS/KeychronCharge" --read-json
 "dist/Keychron Charge.app/Contents/MacOS/KeychronCharge" --check-ui
+"dist/Keychron Charge.app/Contents/MacOS/KeychronCharge" --scroll-status
 ```
 
 `--read-json` returns one reading. `--check-ui` runs the native app lifecycle, reads the mouse, prints the actual status button's title, icon description, and menu contents, then exits. Run USB checks from a normal terminal; a restricted agent terminal can enumerate devices but cannot open their HID interfaces.
+
+`--scroll-status` returns the saved preference and native scrolling state. All three diagnostic commands are read-only and do not run the scrolling automation.
 
 The tests cover captured reports, malformed and unrelated responses, valid 0%, charging state, Bluetooth battery validation, transport identity, and connection priority. Live tests verified cable mode in a different USB port with the receiver attached, Bluetooth with the receiver attached, and 2.4 GHz receiver mode. See [protocol evidence](docs/usb-protocol.md) for captures and limitations.
 

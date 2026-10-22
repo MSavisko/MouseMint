@@ -1,7 +1,11 @@
 import AppKit
 import Foundation
 
-if CommandLine.arguments.contains("--read-json") {
+if CommandLine.arguments.contains("--scroll-status") {
+    let encoder = JSONEncoder()
+    encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+    print(String(decoding: try encoder.encode(SystemNaturalScrolling().read()), as: UTF8.self))
+} else if CommandLine.arguments.contains("--read-json") {
     do {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
@@ -28,6 +32,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var errorMessage: String?
     private var connectionUnavailable = false
     private var refreshing = false
+    private let naturalScrolling = AutomaticNaturalScrolling()
     private let worker = DispatchQueue(label: "local.keychroncharge.usb", qos: .utility)
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -51,6 +56,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         refreshing = true
         worker.async { [weak self] in
             let result = Result { try MouseReader.read() }
+            let scrollConnection: MouseConnectionState
+            switch result {
+            case .success: scrollConnection = .connected
+            case .failure(let error):
+                scrollConnection = (error as? MouseReadError)?.scrollingConnection(directMousePresent: MouseReader.hasDirectConnection()) ?? .unknown
+            }
             DispatchQueue.main.async {
                 guard let self else { return }
                 self.refreshing = false
@@ -63,9 +74,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                     self.reading = nil
                     self.errorMessage = String(describing: error)
                     switch error as? MouseReadError {
-                    case .disconnected?, .receiverUnavailable?: self.connectionUnavailable = true
+                    case .disconnected?, .receiverDisconnected?: self.connectionUnavailable = true
                     default: self.connectionUnavailable = false
                     }
+                }
+                // Inspection commands remain read-only; normal app refreshes
+                // apply the user's requested connection-based system setting.
+                if CommandLine.arguments.contains("--check-ui") {
+                    self.naturalScrolling.refreshStatus()
+                } else {
+                    self.naturalScrolling.update(connection: scrollConnection)
                 }
                 self.updateUI()
                 if CommandLine.arguments.contains("--check-ui") {
@@ -148,6 +166,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
         }
         menu.addItem(.separator())
+        label(naturalScrolling.menuTitle, symbol: naturalScrolling.errorMessage == nil ? "arrow.up.arrow.down" : "exclamationmark.triangle")
+        if let errorMessage = naturalScrolling.errorMessage { label(errorMessage) }
+        menu.addItem(.separator())
         action("Refresh Now", #selector(refresh), symbol: "arrow.clockwise", key: "r")
         action("Copy Diagnostics", #selector(copyDiagnostics), symbol: "doc.on.doc")
         action("About Keychron Charge", #selector(about), symbol: "info.circle")
@@ -156,7 +177,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func copyDiagnostics() {
-        var text = "Keychron Charge 1.1\n"
+        var text = "Keychron Charge 1.2\n"
         if let reading {
             text += "Connection: \(reading.mode.title)\nProduct ID: \(String(format: "%04X", reading.productID))\n"
             if let status = reading.status {
@@ -165,6 +186,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             text += "Read at: \(reading.date.ISO8601Format())\n"
             text += reading.mode == .bluetooth ? "Source: macOS accessory battery service" : "Report: " + reading.rawReport.map { String(format: "%02x", $0) }.joined(separator: " ")
         } else { text += errorMessage ?? "No reading yet" }
+        text += "\n\(naturalScrolling.menuTitle)\n"
+        if let error = naturalScrolling.errorMessage { text += "Scrolling error: \(error)\n" }
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(text, forType: .string)
     }
@@ -172,7 +195,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func about() {
         let alert = NSAlert()
         alert.messageText = "Keychron Charge"
-        alert.informativeText = "A small battery monitor for Keychron M3.\n\nSupports USB cable, USB-C receiver, and Bluetooth. Checks the connection every five seconds. Bluetooth percentage comes from macOS.\n\nNo network connection or mouse configuration changes."
+        alert.informativeText = "A small battery monitor for Keychron M3.\n\nSupports USB cable, USB-C receiver, and Bluetooth. Checks the connection every five seconds. Bluetooth percentage comes from macOS.\n\nAutomatically turns Natural Scrolling off when the mouse connects and on when it disconnects. This macOS setting also affects the trackpad."
         NSApp.activate(ignoringOtherApps: true)
         alert.runModal()
     }

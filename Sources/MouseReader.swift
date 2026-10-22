@@ -2,16 +2,24 @@ import Foundation
 import IOKit.hid
 
 enum MouseReadError: Error, CustomStringConvertible {
-    case disconnected, receiverUnavailable, access(IOReturn), request(IOReturn), response(IOReturn), invalid
+    case disconnected, receiverDisconnected, receiverUnavailable, access(IOReturn), request(IOReturn), response(IOReturn), invalid
 
     var description: String {
         switch self {
         case .disconnected: return "Connect your M3 by cable, receiver, or Bluetooth."
-        case .receiverUnavailable: return "Receiver connected; mouse asleep, disconnected, or not responding."
+        case .receiverDisconnected: return "The receiver reports that the mouse is not connected."
+        case .receiverUnavailable: return "The receiver did not reply. Checking the mouse connection again."
         case .access(let code): return "USB access denied or busy (\(Self.hex(code))). Close Keychron Engine and reopen this app."
         case .request(let code): return "Status request failed (\(Self.hex(code))). Reconnect the mouse."
         case .response(let code): return "Status read failed (\(Self.hex(code))). Reconnect the mouse."
         case .invalid: return "The mouse returned an unrecognized status. Battery level is unavailable."
+        }
+    }
+    func scrollingConnection(directMousePresent: Bool) -> MouseConnectionState {
+        if directMousePresent { return .connected }
+        switch self {
+        case .disconnected, .receiverDisconnected: return .disconnected
+        default: return .unknown
         }
     }
     private static func hex(_ value: IOReturn) -> String { String(format: "0x%08x", value) }
@@ -26,6 +34,21 @@ struct MouseReading: Codable {
 }
 
 enum MouseReader {
+    static func hasDirectConnection() -> Bool {
+        let manager = IOHIDManagerCreate(kCFAllocatorDefault, 0)
+        IOHIDManagerSetDeviceMatching(manager, [kIOHIDVendorIDKey: 0x3434, kIOHIDProductIDKey: 0xD033] as CFDictionary)
+        let devices = IOHIDManagerCopyDevices(manager) as? Set<IOHIDDevice> ?? []
+        return devices.contains { device in
+            func number(_ key: String) -> Int {
+                (IOHIDDeviceGetProperty(device, key as CFString) as? NSNumber)?.intValue ?? 0
+            }
+            let mode = ConnectionMode.identify(vendorID: number(kIOHIDVendorIDKey), productID: number(kIOHIDProductIDKey),
+                transport: IOHIDDeviceGetProperty(device, kIOHIDTransportKey as CFString) as? String ?? "",
+                usagePage: number(kIOHIDPrimaryUsagePageKey), usage: number(kIOHIDPrimaryUsageKey))
+            return mode == .cable || mode == .bluetooth
+        }
+    }
+
     static func read() throws -> MouseReading {
         let manager = IOHIDManagerCreate(kCFAllocatorDefault, IOOptionBits(kIOHIDOptionsTypeNone))
         IOHIDManagerSetDeviceMatching(manager, [kIOHIDVendorIDKey: 0x3434] as CFDictionary)

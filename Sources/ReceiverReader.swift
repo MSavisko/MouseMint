@@ -7,6 +7,11 @@ private final class ReceiverResponse {
 }
 
 enum ReceiverReader {
+    static func hasNoTarget(_ report: [UInt8]) -> Bool {
+        report.count == 21 && report[0] == 0x54 && report[1] == 0xE4 && report[2] == 2
+            && report.dropFirst(3).allSatisfy { $0 == 0 }
+    }
+
     static func read(_ device: IOHIDDevice) throws -> (BatteryStatus, [UInt8]) {
         let opened = IOHIDDeviceOpen(device, 0)
         guard opened == kIOReturnSuccess else { throw MouseReadError.access(opened) }
@@ -19,7 +24,7 @@ enum ReceiverReader {
             let state = Unmanaged<ReceiverResponse>.fromOpaque(context).takeUnretainedValue()
             let report = Array(UnsafeBufferPointer(start: bytes, count: length))
             if BatteryStatus.decodeReceiver(report) != nil { state.report = report }
-            if report.count >= 3, report[0] == 0x54, report[1] == 0xE4, report[2] >= 2 {
+            if ReceiverReader.hasNoTarget(report) {
                 state.unavailable = true
             }
         }, context)
@@ -40,6 +45,7 @@ enum ReceiverReader {
         while state.report == nil && !state.unavailable && ProcessInfo.processInfo.systemUptime < deadline {
             CFRunLoopRunInMode(.defaultMode, 0.03, true)
         }
+        if state.unavailable { throw MouseReadError.receiverDisconnected }
         guard let report = state.report, let status = BatteryStatus.decodeReceiver(report) else {
             throw MouseReadError.receiverUnavailable
         }

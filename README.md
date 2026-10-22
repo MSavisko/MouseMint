@@ -8,6 +8,8 @@ Open **[dist/Keychron Charge.app](dist/Keychron%20Charge.app)** in Finder. Click
 
 The icon changes with the connection: cable connector, USB receiver, or Bluetooth rune. The app checks every five seconds and after waking from sleep. It gives a cable connection priority, then a connected Bluetooth mouse, then a responding wireless receiver. An idle receiver alone does not count as an active mouse connection. No USB port is hard-coded.
 
+When the mouse is disconnected or does not respond through its receiver, the menu bar shows a circled X and **Not connected**. The menu suggests waking the mouse or checking its connection. USB access and read errors are labelled separately as **Read error**.
+
 The included build is for Apple Silicon and macOS 13 or later. It is locally ad-hoc signed, not notarized for distribution. It does not add itself to login items, use a network service, install a driver, or change mouse configuration.
 
 ```sh

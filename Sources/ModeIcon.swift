@@ -3,7 +3,7 @@ import AppKit
 enum ModeIcon {
     static func image(for mode: ConnectionMode?) -> NSImage {
         guard let mode else {
-            return NSImage(systemSymbolName: "computermouse", accessibilityDescription: "Mouse disconnected")!
+            return NSImage(systemSymbolName: "xmark.circle", accessibilityDescription: "Mouse not connected")!
         }
         if mode == .cable {
             return NSImage(systemSymbolName: "cable.connector", accessibilityDescription: mode.title)!

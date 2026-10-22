@@ -26,6 +26,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var timer: Timer?
     private var reading: MouseReading?
     private var errorMessage: String?
+    private var connectionUnavailable = false
     private var refreshing = false
     private let worker = DispatchQueue(label: "local.keychroncharge.usb", qos: .utility)
 
@@ -57,9 +58,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 case .success(let value):
                     self.reading = value
                     self.errorMessage = nil
+                    self.connectionUnavailable = false
                 case .failure(let error):
                     self.reading = nil
                     self.errorMessage = String(describing: error)
+                    switch error as? MouseReadError {
+                    case .disconnected?, .receiverUnavailable?: self.connectionUnavailable = true
+                    default: self.connectionUnavailable = false
+                    }
                 }
                 self.updateUI()
                 if CommandLine.arguments.contains("--check-ui") {
@@ -97,10 +103,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             label("Status: \(status?.powerDescription ?? "Battery unavailable")")
             label("Updated: \(reading.date.formatted(date: .omitted, time: .standard))")
         } else {
-            item.button?.title = " M3 —"
-            item.button?.image = NSImage(systemSymbolName: "computermouse", accessibilityDescription: "Mouse disconnected")
-            item.button?.toolTip = errorMessage ?? "Checking Keychron M3…"
-            label(errorMessage ?? "Checking mouse…")
+            if connectionUnavailable {
+                item.button?.title = " Not connected"
+                item.button?.image = ModeIcon.image(for: nil)
+                item.button?.toolTip = "Keychron M3 is not connected. Wake the mouse or check its connection."
+                label("Status: Not connected")
+                label("Wake the mouse or check its cable, receiver, or Bluetooth.")
+            } else if let errorMessage {
+                item.button?.title = " Read error"
+                item.button?.image = NSImage(systemSymbolName: "exclamationmark.triangle", accessibilityDescription: "Mouse status unavailable")
+                item.button?.toolTip = errorMessage
+                label("Status: Unable to read mouse")
+                label(errorMessage)
+            } else {
+                item.button?.title = " Checking…"
+                item.button?.image = NSImage(systemSymbolName: "ellipsis.circle", accessibilityDescription: "Checking mouse connection")
+                item.button?.toolTip = "Checking Keychron M3…"
+                label("Checking mouse connection…")
+            }
         }
         menu.addItem(.separator())
         action("Refresh Now", #selector(refresh), key: "r")

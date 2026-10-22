@@ -9,3 +9,6 @@ xcrun swiftc -module-cache-path .build/module-cache \
   Sources/MouseReader.swift Sources/ReceiverReader.swift Sources/NaturalScrolling.swift \
   Tests/NaturalScrollingTests.swift -o .build/natural-scrolling-tests
 .build/natural-scrolling-tests
+xcrun swiftc -module-cache-path .build/module-cache \
+  Sources/NaturalScrolling.swift Sources/SettingsWindow.swift Tests/SettingsTests.swift -o .build/settings-tests
+.build/settings-tests

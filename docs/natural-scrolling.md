@@ -2,6 +2,15 @@
 
 Added 2026-10-23 for the user's requested rule: **off when the M3 is connected, on when it is disconnected**. This intentionally changes macOS's shared mouse/trackpad setting. It runs only while Keychron Charge is open.
 
+## Settings controls
+
+The menu's **Settings…** row opens a native window with short explanations and two switches:
+
+- **Automatically switch Natural Scrolling** enables the connection rule below. Its value is stored in the app's `automaticallySwitchNaturalScrolling` preference, defaulting to true when absent to preserve existing behavior. Turning it off does not write the system scrolling setting. Connection checks and battery monitoring continue, but no connection observation can apply a scrolling change while disabled, including an in-flight query. Re-enabling requests a fresh connection reading.
+- **Natural Scrolling** reflects the live native value. It is editable only while automation is off and the native setting is available. Manual changes use the same verified backend as automatic changes. Disabling automation also lets changes made in macOS Settings persist.
+
+The menu shows `(automatic)` or `(manual)` beside the live setting. The Settings window updates with each refresh and displays application errors. Closing the window does not change either setting.
+
 ## Applying the setting
 
 The implementation saves `com.apple.swipescrolldirection` in the current user's global, any-host preferences using `CFPreferencesSetValue` and `CFPreferencesSynchronize`.
@@ -30,7 +39,7 @@ The native setter/getter route is unsupported macOS API. It is loaded at runtime
 
 A plugged-in receiver does not establish that a mouse is connected. The receiver handler distinguishes a confirmed no-target reply from an uncertain timeout; only the former establishes disconnection. Incomplete, unrelated, or other receiver acknowledgements do not count as no-target replies.
 
-The app checks every five seconds and on wake/menu opening. It reads the preference and native setting before applying its rule, avoiding repeated writes while they already match. A manual setting change is corrected on the next confirmed observation. Quitting leaves the current setting in place and stops automatic switching.
+When automation is enabled, the app checks every five seconds and on wake/menu opening. It reads the preference and native setting before applying its rule, avoiding repeated writes while they already match. A manual setting change is corrected on the next confirmed observation. Quitting leaves the current setting in place and stops automatic switching.
 
 ## Diagnostics
 
@@ -56,3 +65,5 @@ Example when the mouse is disconnected:
 - After the user disconnected the mouse, HID enumeration showed no M3/receiver. The running app automatically changed the saved preference to `1`; the native getter reported true. Its menu showed `Not connected` and `Natural Scrolling: On (automatic)`. The user confirmed trackpad scrolling felt correct.
 - After reconnecting the USB-C receiver and switching the mouse to 2.4 GHz with its cable unplugged, the running app automatically changed both saved and native values to false. The menu showed the receiver connection, 100% battery, and `Natural Scrolling: Off (automatic)`. The user confirmed mouse-wheel scrolling felt correct.
 - Automated checks cover connected/disconnected/unknown transitions, unchanged-state writes, reconnects, mismatched saved/live values, failure visibility and retry, direct-mouse evidence during battery errors, and receiver no-target acknowledgement validation. They use an injected backend and do not change system settings.
+- Settings checks exercise the real native switches' target/actions with an injected scrolling backend: disabling performs no system write, connection changes cannot override manual mode, manual changes apply, and re-enabling resumes the connection rule. A separate process verifies the disabled preference survives a relaunch using an isolated test domain. The native Settings content was rendered and visually inspected for readable explanations and unclipped controls.
+- The final app's `--check-ui --settings` check confirmed a live receiver reading at 100%, the Settings menu row and window, the saved automatic switch On, and the manual switch reflecting Off and disabled while automation is active.

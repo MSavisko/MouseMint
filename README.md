@@ -4,7 +4,7 @@ A tiny native macOS menu bar app for the **Keychron M3-A3**. It displays battery
 
 ## Run
 
-Open **[dist/Keychron Charge.app](dist/Keychron%20Charge.app)** in Finder. Click the menu bar icon for connection mode, battery percentage, charging status, manual refresh, and diagnostics.
+Open **[dist/Keychron Charge.app](dist/Keychron%20Charge.app)** in Finder. Click the menu bar icon for connection mode, battery percentage, charging status, Settings, manual refresh, and diagnostics.
 
 The dropdown uses native macOS symbols for battery, status, update time, Refresh, Copy Diagnostics, About, and Quit, alongside the matching connection-mode icon. Icons use the system's monochrome menu appearance.
 
@@ -23,9 +23,11 @@ open "dist/Keychron Charge.app"
 
 While the app is running, it turns macOS **Natural Scrolling off when the M3 is connected** and **on when it disconnects**. This is the shared macOS setting, so it also changes trackpad scrolling. Cable, receiver, and Bluetooth connections all use the same rule. The menu shows the current setting.
 
+Open **Settings…** in the menu to control this behavior. Turn off **Automatically switch Natural Scrolling** to stop syncing with the mouse connection. Turning it off keeps the current macOS setting; you can then change **Natural Scrolling** in this window or in macOS Settings. Your automatic-switching choice is saved across launches. It starts enabled to preserve the existing behavior. The window includes short explanations and the connection rule.
+
 Connection checks run every five seconds. A receiver reporting no connected mouse counts as disconnected even if the receiver remains plugged in. A timeout or battery-read error does not establish a disconnection: the app keeps the scrolling setting unchanged. A directly enumerated cable/Bluetooth mouse still counts as connected if its battery read fails.
 
-The app applies changes immediately and saves the preference, only writing when the requested state differs. While running, it will reapply its rule if you change Natural Scrolling manually. Quitting stops automation and leaves the last setting in place. The implementation uses a native, unsupported macOS helper; a missing helper or failed change is reported in the menu. See [implementation and validation](docs/natural-scrolling.md).
+The app applies changes immediately and saves the preference, only writing when the requested state differs. While automatic switching is enabled, it will reapply its rule if you change Natural Scrolling manually. Re-enabling automation requests a fresh connection check. Quitting stops automation and leaves the last setting in place. The implementation uses a native, unsupported macOS helper; a missing helper or failed change is reported in the menu and Settings window. See [implementation and validation](docs/natural-scrolling.md).
 
 ## Battery sources
 
@@ -47,10 +49,11 @@ Scope: this M3-A3, its D031 USB-C receiver, and one mouse at a time. USB-A D030 
 ./test.sh
 "dist/Keychron Charge.app/Contents/MacOS/KeychronCharge" --read-json
 "dist/Keychron Charge.app/Contents/MacOS/KeychronCharge" --check-ui
+"dist/Keychron Charge.app/Contents/MacOS/KeychronCharge" --check-ui --settings
 "dist/Keychron Charge.app/Contents/MacOS/KeychronCharge" --scroll-status
 ```
 
-`--read-json` returns one reading. `--check-ui` runs the native app lifecycle, reads the mouse, prints the actual status button's title, icon description, and menu contents, then exits. Run USB checks from a normal terminal; a restricted agent terminal can enumerate devices but cannot open their HID interfaces.
+`--read-json` returns one reading. `--check-ui` runs the native app lifecycle, reads the mouse, prints the actual status button's title, icon description, and menu contents, then exits. Add `--settings` to also inspect the Settings window and its switches. Run USB checks from a normal terminal; a restricted agent terminal can enumerate devices but cannot open their HID interfaces.
 
 `--scroll-status` returns the saved preference and native scrolling state. All three diagnostic commands are read-only and do not run the scrolling automation.
 

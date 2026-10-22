@@ -1,5 +1,9 @@
 import Foundation
 
+private final class MemoryPreferences: ScrollingPreferences {
+    var automaticallySwitch = true
+}
+
 private final class FakeScrolling: NaturalScrollingBackend {
     var state: NaturalScrollingState
     var writes: [Bool] = []
@@ -16,7 +20,8 @@ private final class FakeScrolling: NaturalScrollingBackend {
 @main struct NaturalScrollingTests {
     static func main() {
         let backend = FakeScrolling(true)
-        let controller = AutomaticNaturalScrolling(backend: backend)
+        let preferences = MemoryPreferences()
+        let controller = AutomaticNaturalScrolling(backend: backend, preferences: preferences)
         controller.update(connection: .unknown)
         precondition(backend.writes.isEmpty)
         controller.update(connection: .connected)
@@ -49,6 +54,32 @@ private final class FakeScrolling: NaturalScrollingBackend {
         backend.fail = false
         controller.update(connection: .connected)
         precondition(controller.errorMessage == nil && controller.state.live == false)
+
+        // Turning automation off leaves the setting untouched through all
+        // connection changes, including a query that was already in flight.
+        let beforeDisable = backend.writes
+        controller.setAutomatic(false)
+        for connection: MouseConnectionState in [.disconnected, .connected, .unknown] {
+            controller.update(connection: connection)
+        }
+        precondition(backend.writes == beforeDisable && controller.state.live == false)
+        precondition(controller.menuTitle.contains("manual"))
+        let reopened = AutomaticNaturalScrolling(backend: backend, preferences: preferences)
+        precondition(!reopened.isAutomatic)
+        reopened.setManual(true)
+        precondition(reopened.state.live == true)
+        reopened.update(connection: .connected)
+        precondition(reopened.state.live == true)
+        backend.fail = true
+        reopened.setManual(false)
+        precondition(reopened.errorMessage != nil)
+        backend.fail = false
+        reopened.setAutomatic(true)
+        precondition(reopened.state.live == true && reopened.errorMessage == nil)
+        reopened.setManual(false) // Manual controls cannot override automation.
+        precondition(reopened.state.live == true)
+        reopened.update(connection: .connected)
+        precondition(reopened.state.live == false)
 
         precondition(MouseReadError.disconnected.scrollingConnection(directMousePresent: false) == .disconnected)
         precondition(MouseReadError.receiverDisconnected.scrollingConnection(directMousePresent: false) == .disconnected)

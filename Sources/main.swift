@@ -33,6 +33,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var connectionUnavailable = false
     private var refreshing = false
     private let naturalScrolling = AutomaticNaturalScrolling()
+    private var settingsWindow: SettingsWindow?
     private let worker = DispatchQueue(label: "local.keychroncharge.usb", qos: .utility)
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -43,6 +44,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.delegate = self
         updateUI()
         refresh()
+        if CommandLine.arguments.contains("--settings") { openSettings() }
         timer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in self?.refresh() }
         NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(woke),
             name: NSWorkspace.didWakeNotification, object: nil)
@@ -92,6 +94,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                     for row in self.menu.items where !row.isSeparatorItem {
                         print("\(row.title) [icon: \(row.image?.accessibilityDescription ?? "none")]")
                     }
+                    if let settings = self.settingsWindow {
+                        print("Settings window: \(settings.window?.title ?? "missing")")
+                        print("Automatic switch: \(settings.automaticSwitch.state == .on ? "On" : "Off")")
+                        print("Manual switch: \(settings.naturalSwitch.state == .on ? "On" : "Off"); editable: \(settings.naturalSwitch.isEnabled)")
+                    }
                     exit(self.reading == nil ? 1 : 0)
                 }
             }
@@ -122,6 +129,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func updateUI() {
+        settingsWindow?.update(from: naturalScrolling)
         menu.removeAllItems()
         label("Keychron M3", symbol: "computermouse")
         if let reading {
@@ -171,13 +179,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(.separator())
         action("Refresh Now", #selector(refresh), symbol: "arrow.clockwise", key: "r")
         action("Copy Diagnostics", #selector(copyDiagnostics), symbol: "doc.on.doc")
+        action("Settings…", #selector(openSettings), symbol: "gearshape", key: ",")
         action("About Keychron Charge", #selector(about), symbol: "info.circle")
         menu.addItem(.separator())
         action("Quit Keychron Charge", #selector(quit), symbol: "power", key: "q")
     }
 
     @objc private func copyDiagnostics() {
-        var text = "Keychron Charge 1.2\n"
+        var text = "Keychron Charge 1.3\n"
         if let reading {
             text += "Connection: \(reading.mode.title)\nProduct ID: \(String(format: "%04X", reading.productID))\n"
             if let status = reading.status {
@@ -195,9 +204,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func about() {
         let alert = NSAlert()
         alert.messageText = "Keychron Charge"
-        alert.informativeText = "A small battery monitor for Keychron M3.\n\nSupports USB cable, USB-C receiver, and Bluetooth. Checks the connection every five seconds. Bluetooth percentage comes from macOS.\n\nAutomatically turns Natural Scrolling off when the mouse connects and on when it disconnects. This macOS setting also affects the trackpad."
+        alert.informativeText = "A small battery monitor for Keychron M3.\n\nSupports USB cable, USB-C receiver, and Bluetooth. Checks the connection every five seconds. Bluetooth percentage comes from macOS.\n\nOptional automatic Natural Scrolling switches off when the mouse connects and on when it disconnects. Open Settings to control it. This macOS setting also affects the trackpad."
         NSApp.activate(ignoringOtherApps: true)
         alert.runModal()
+    }
+
+    @objc private func openSettings() {
+        if settingsWindow == nil {
+            settingsWindow = SettingsWindow(automaticChanged: { [weak self] enabled in
+                guard let self else { return }
+                self.naturalScrolling.setAutomatic(enabled)
+                self.updateUI()
+                if enabled { self.refresh() }
+            }, naturalChanged: { [weak self] enabled in
+                guard let self else { return }
+                self.naturalScrolling.setManual(enabled)
+                self.updateUI()
+            })
+        }
+        naturalScrolling.refreshStatus()
+        settingsWindow?.update(from: naturalScrolling)
+        settingsWindow?.present()
     }
     @objc private func quit() { NSApp.terminate(nil) }
 }

@@ -15,6 +15,22 @@ protocol NaturalScrollingBackend {
     func setEnabled(_ enabled: Bool) throws
 }
 
+protocol ScrollingPreferences: AnyObject {
+    var automaticallySwitch: Bool { get set }
+}
+
+final class SavedScrollingPreferences: ScrollingPreferences {
+    private let defaults: UserDefaults
+    private let key = "automaticallySwitchNaturalScrolling"
+
+    init(defaults: UserDefaults = .standard) { self.defaults = defaults }
+
+    var automaticallySwitch: Bool {
+        get { defaults.object(forKey: key) as? Bool ?? true }
+        set { defaults.set(newValue, forKey: key) }
+    }
+}
+
 enum NaturalScrollingError: Error, CustomStringConvertible {
     case unavailable, saveFailed, applyFailed
 
@@ -72,24 +88,45 @@ final class SystemNaturalScrolling: NaturalScrollingBackend {
 
 final class AutomaticNaturalScrolling {
     private let backend: NaturalScrollingBackend
+    private let preferences: ScrollingPreferences
+    var isAutomatic: Bool { preferences.automaticallySwitch }
     private(set) var state: NaturalScrollingState
     private(set) var errorMessage: String?
 
-    init(backend: NaturalScrollingBackend = SystemNaturalScrolling()) {
+    init(backend: NaturalScrollingBackend = SystemNaturalScrolling(), preferences: ScrollingPreferences = SavedScrollingPreferences()) {
         self.backend = backend
+        self.preferences = preferences
         state = backend.read()
     }
 
     func refreshStatus() { state = backend.read() }
 
+    func setAutomatic(_ enabled: Bool) {
+        preferences.automaticallySwitch = enabled
+        errorMessage = nil
+        refreshStatus()
+        // Enabling is applied after a fresh connection check by the app.
+        // Disabling always leaves the system's current setting untouched.
+    }
+
+    func setManual(_ enabled: Bool) {
+        guard !isAutomatic else { return }
+        apply(enabled)
+    }
+
     func update(connection: MouseConnectionState) {
         refreshStatus()
+        guard isAutomatic else { return }
         let desired: Bool
         switch connection {
         case .connected: desired = false
         case .disconnected: desired = true
         case .unknown: return // A read failure does not establish disconnection.
         }
+        apply(desired)
+    }
+
+    private func apply(_ desired: Bool) {
         do {
             if state.preference != desired || state.live != desired {
                 try backend.setEnabled(desired)
@@ -105,6 +142,6 @@ final class AutomaticNaturalScrolling {
     var menuTitle: String {
         if errorMessage != nil { return "Natural Scrolling: Could not update" }
         guard let enabled = state.live else { return "Natural Scrolling: Unavailable" }
-        return "Natural Scrolling: \(enabled ? "On" : "Off") (automatic)"
+        return "Natural Scrolling: \(enabled ? "On" : "Off") (\(isAutomatic ? "automatic" : "manual"))"
     }
 }

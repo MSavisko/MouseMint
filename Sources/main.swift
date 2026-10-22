@@ -71,63 +71,88 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 if CommandLine.arguments.contains("--check-ui") {
                     print("Menu bar: \(self.item.button?.title ?? "missing")")
                     print("Mode icon: \(self.item.button?.image?.accessibilityDescription ?? "missing")")
-                    for row in self.menu.items where !row.isSeparatorItem { print(row.title) }
+                    for row in self.menu.items where !row.isSeparatorItem {
+                        print("\(row.title) [icon: \(row.image?.accessibilityDescription ?? "none")]")
+                    }
                     exit(self.reading == nil ? 1 : 0)
                 }
             }
         }
     }
 
-    private func label(_ text: String) {
-        let row = NSMenuItem(title: text, action: nil, keyEquivalent: "")
-        menu.addItem(row)
+    private func menuImage(_ symbol: String, description: String) -> NSImage? {
+        let image = NSImage(systemSymbolName: symbol, accessibilityDescription: description)?
+            .withSymbolConfiguration(.init(pointSize: 14, weight: .regular))
+        image?.isTemplate = true
+        image?.size = NSSize(width: 16, height: 16)
+        return image
     }
 
-    private func action(_ title: String, _ selector: Selector, key: String = "") {
+    @discardableResult
+    private func label(_ text: String, symbol: String? = nil) -> NSMenuItem {
+        let row = NSMenuItem(title: text, action: nil, keyEquivalent: "")
+        if let symbol { row.image = menuImage(symbol, description: text) }
+        menu.addItem(row)
+        return row
+    }
+
+    private func action(_ title: String, _ selector: Selector, symbol: String, key: String = "") {
         let row = NSMenuItem(title: title, action: selector, keyEquivalent: key)
+        row.image = menuImage(symbol, description: title)
         row.target = self
         menu.addItem(row)
     }
 
     private func updateUI() {
         menu.removeAllItems()
-        label("Keychron M3")
+        label("Keychron M3", symbol: "computermouse")
         if let reading {
             let status = reading.status
             let level = status.map { "\($0.percentage)%" } ?? "—"
             item.button?.title = " \(level)"
             item.button?.image = ModeIcon.image(for: reading.mode)
             item.button?.toolTip = "Keychron M3: \(level) · \(reading.mode.title) · \(status?.powerDescription ?? "Battery unavailable")"
-            label("Connection: \(reading.mode.title)")
-            label("Battery: \(status.map { "\($0.percentage)%" } ?? "Waiting for macOS")")
-            label("Status: \(status?.powerDescription ?? "Battery unavailable")")
-            label("Updated: \(reading.date.formatted(date: .omitted, time: .standard))")
+            let connection = label("Connection: \(reading.mode.title)")
+            connection.image = ModeIcon.image(for: reading.mode)
+            connection.image?.size = NSSize(width: 16, height: 16)
+            let batterySymbol: String
+            switch status?.percentage ?? 0 {
+            case ..<15: batterySymbol = "battery.0percent"
+            case ..<40: batterySymbol = "battery.25percent"
+            case ..<65: batterySymbol = "battery.50percent"
+            case ..<90: batterySymbol = "battery.75percent"
+            default: batterySymbol = "battery.100percent"
+            }
+            label("Battery: \(status.map { "\($0.percentage)%" } ?? "Waiting for macOS")", symbol: batterySymbol)
+            let statusSymbol = status?.powerState == 1 ? "bolt.fill" : status?.powerState == 2 ? "checkmark.circle" : "info.circle"
+            label("Status: \(status?.powerDescription ?? "Battery unavailable")", symbol: statusSymbol)
+            label("Updated: \(reading.date.formatted(date: .omitted, time: .standard))", symbol: "clock")
         } else {
             if connectionUnavailable {
                 item.button?.title = " Not connected"
                 item.button?.image = ModeIcon.image(for: nil)
                 item.button?.toolTip = "Keychron M3 is not connected. Wake the mouse or check its connection."
-                label("Status: Not connected")
+                label("Status: Not connected", symbol: "xmark.circle")
                 label("Wake the mouse or check its cable, receiver, or Bluetooth.")
             } else if let errorMessage {
                 item.button?.title = " Read error"
                 item.button?.image = NSImage(systemSymbolName: "exclamationmark.triangle", accessibilityDescription: "Mouse status unavailable")
                 item.button?.toolTip = errorMessage
-                label("Status: Unable to read mouse")
+                label("Status: Unable to read mouse", symbol: "exclamationmark.triangle")
                 label(errorMessage)
             } else {
                 item.button?.title = " Checking…"
                 item.button?.image = NSImage(systemSymbolName: "ellipsis.circle", accessibilityDescription: "Checking mouse connection")
                 item.button?.toolTip = "Checking Keychron M3…"
-                label("Checking mouse connection…")
+                label("Checking mouse connection…", symbol: "ellipsis.circle")
             }
         }
         menu.addItem(.separator())
-        action("Refresh Now", #selector(refresh), key: "r")
-        action("Copy Diagnostics", #selector(copyDiagnostics))
-        action("About Keychron Charge", #selector(about))
+        action("Refresh Now", #selector(refresh), symbol: "arrow.clockwise", key: "r")
+        action("Copy Diagnostics", #selector(copyDiagnostics), symbol: "doc.on.doc")
+        action("About Keychron Charge", #selector(about), symbol: "info.circle")
         menu.addItem(.separator())
-        action("Quit Keychron Charge", #selector(quit), key: "q")
+        action("Quit Keychron Charge", #selector(quit), symbol: "power", key: "q")
     }
 
     @objc private func copyDiagnostics() {

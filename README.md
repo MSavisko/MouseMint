@@ -6,6 +6,8 @@ A tiny native macOS menu bar app for the **Keychron M3-A3**. It displays battery
 
 Open **[dist/Keychron Charge.app](dist/Keychron%20Charge.app)** in Finder. Click the menu bar icon for connection mode, battery percentage, charging status, manual refresh, and diagnostics.
 
+The dropdown uses native macOS symbols for battery, status, update time, Refresh, Copy Diagnostics, About, and Quit, alongside the matching connection-mode icon. Icons use the system's monochrome menu appearance.
+
 The icon changes with the connection: cable connector, USB receiver, or Bluetooth rune. The app checks every five seconds and after waking from sleep. It gives a cable connection priority, then a connected Bluetooth mouse, then a responding wireless receiver. An idle receiver alone does not count as an active mouse connection. No USB port is hard-coded.
 
 When the mouse is disconnected or does not respond through its receiver, the menu bar shows a circled X and **Not connected**. The menu suggests waking the mouse or checking its connection. USB access and read errors are labelled separately as **Read error**.

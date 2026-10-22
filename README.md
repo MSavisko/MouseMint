@@ -76,3 +76,5 @@ See the [M3-A3 capability inventory](docs/m3-a3-capabilities.md) for vendor-docu
 - [Apple IOKit accessory power-source declarations](https://github.com/apple-oss-distributions/IOKitUser/blob/main/ps.subproj/IOPowerSourcesPrivate.h).
 
 Independent utility; not affiliated with Keychron.
+
+Future ideas and implementation milestones are tracked in [PLAN.md](PLAN.md).

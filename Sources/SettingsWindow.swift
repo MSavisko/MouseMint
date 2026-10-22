@@ -2,10 +2,11 @@ import AppKit
 
 final class SettingsWindow: NSWindowController, NSToolbarDelegate {
     enum Pane: String, CaseIterable {
-        case naturalScrolling, diagnostics, about
+        case general, naturalScrolling, diagnostics, about
 
         var title: String {
             switch self {
+            case .general: return "General"
             case .naturalScrolling: return "Natural Scrolling"
             case .diagnostics: return "Diagnostics"
             case .about: return "About"
@@ -13,6 +14,7 @@ final class SettingsWindow: NSWindowController, NSToolbarDelegate {
         }
         var symbol: String {
             switch self {
+            case .general: return "gearshape"
             case .naturalScrolling: return "arrow.up.arrow.down"
             case .diagnostics: return "stethoscope"
             case .about: return "info.circle"
@@ -21,6 +23,7 @@ final class SettingsWindow: NSWindowController, NSToolbarDelegate {
         var identifier: NSToolbarItem.Identifier { .init(rawValue) }
         var height: CGFloat {
             switch self {
+            case .general: return 250
             case .naturalScrolling: return 350
             case .diagnostics: return 400
             case .about: return 250
@@ -30,35 +33,42 @@ final class SettingsWindow: NSWindowController, NSToolbarDelegate {
 
     let automaticSwitch = NSSwitch()
     let naturalSwitch = NSSwitch()
+    let intervalSlider = NSSlider(value: 2, minValue: 0, maxValue: 4, target: nil, action: nil)
+    let intervalLabel = NSTextField(labelWithString: "Every 5 seconds (default)")
     let refreshButton = NSButton(title: "Refresh Now", target: nil, action: nil)
     let copyButton = NSButton(title: "Copy Diagnostics", target: nil, action: nil)
     let diagnosticsText = NSTextView()
-    private(set) var selectedPane: Pane = .naturalScrolling
+    private(set) var selectedPane: Pane = .general
     private(set) var copyStatus = NSTextField(labelWithString: "")
     private let statusLabel = NSTextField(wrappingLabelWithString: "")
     private let errorLabel = NSTextField(wrappingLabelWithString: "")
     private let automaticChanged: (Bool) -> Void
     private let naturalChanged: (Bool) -> Void
+    private let intervalChanged: (Int) -> Void
+    private var displayedInterval: Int?
     private let refreshRequested: () -> Void
     private let diagnostics: () -> String
     private let pasteboard: NSPasteboard
     private var panes: [Pane: NSView] = [:]
 
     init(automaticChanged: @escaping (Bool) -> Void, naturalChanged: @escaping (Bool) -> Void,
+         intervalChanged: @escaping (Int) -> Void,
          refreshRequested: @escaping () -> Void, diagnostics: @escaping () -> String,
          pasteboard: NSPasteboard = .general) {
         self.automaticChanged = automaticChanged
         self.naturalChanged = naturalChanged
+        self.intervalChanged = intervalChanged
         self.refreshRequested = refreshRequested
         self.diagnostics = diagnostics
         self.pasteboard = pasteboard
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 500, height: Pane.naturalScrolling.height),
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 500, height: Pane.general.height),
             styleMask: [.titled, .closable], backing: .buffered, defer: false)
         window.title = "Keychron Charge Settings"
         window.isReleasedWhenClosed = false
         window.toolbarStyle = .preference
         super.init(window: window)
 
+        panes[.general] = generalPane()
         panes[.naturalScrolling] = scrollingPane()
         panes[.diagnostics] = diagnosticsPane()
         panes[.about] = aboutPane()
@@ -68,7 +78,7 @@ final class SettingsWindow: NSWindowController, NSToolbarDelegate {
         toolbar.allowsUserCustomization = false
         toolbar.autosavesConfiguration = false
         window.toolbar = toolbar
-        selectPane(.naturalScrolling)
+        selectPane(.general)
         window.center()
     }
 
@@ -149,7 +159,7 @@ final class SettingsWindow: NSWindowController, NSToolbarDelegate {
         let (view, stack) = makePane()
         add(toggleRow("Automatically switch Natural Scrolling", control: automaticSwitch, selector: #selector(changeAutomatic)), to: stack)
         add(explanation("Mouse connected → Off\nMouse disconnected → On"), to: stack)
-        add(explanation("Works with USB cable, receiver, and Bluetooth while this app is open. Checks about every five seconds."), to: stack)
+        add(explanation("Works with USB cable, receiver, and Bluetooth while this app is open. The check interval is set in General."), to: stack)
         let separator = NSBox()
         separator.boxType = .separator
         add(separator, to: stack)
@@ -161,6 +171,29 @@ final class SettingsWindow: NSWindowController, NSToolbarDelegate {
         errorLabel.font = .systemFont(ofSize: 12)
         errorLabel.textColor = .systemRed
         add(errorLabel, to: stack)
+        return view
+    }
+
+    private func generalPane() -> NSView {
+        let (view, stack) = makePane()
+        let title = NSTextField(labelWithString: "Status check interval")
+        title.font = .systemFont(ofSize: 13, weight: .medium)
+        add(title, to: stack)
+        add(explanation("Checks battery, connection, and automatic scrolling. Faster checks react sooner; slower checks make fewer requests."), to: stack)
+        intervalSlider.numberOfTickMarks = StatusInterval.seconds.count
+        intervalSlider.allowsTickMarkValuesOnly = true
+        intervalSlider.isContinuous = false
+        intervalSlider.target = self
+        intervalSlider.action = #selector(changeInterval)
+        intervalSlider.setAccessibilityLabel("Status check interval")
+        add(intervalSlider, to: stack)
+        let ticks = NSStackView(views: StatusInterval.seconds.map { NSTextField(labelWithString: "\($0) s") })
+        ticks.orientation = .horizontal
+        ticks.distribution = .equalSpacing
+        add(ticks, to: stack)
+        intervalLabel.font = .systemFont(ofSize: 12, weight: .medium)
+        add(intervalLabel, to: stack)
+        add(explanation("This changes status checks, not the mouse's movement polling rate. Your choice is saved. Bluetooth battery freshness is managed by macOS."), to: stack)
         return view
     }
 
@@ -206,12 +239,20 @@ final class SettingsWindow: NSWindowController, NSToolbarDelegate {
         add(title, to: stack)
         add(explanation(AppVersion.description), to: stack)
         add(explanation("A small battery monitor for Keychron M3-A3. Supports USB cable, USB-C receiver, and Bluetooth."), to: stack)
-        add(explanation("Battery and connection checks run about every five seconds. Natural Scrolling automation is optional."), to: stack)
+        add(explanation("Choose how often to check status in General. Natural Scrolling automation is optional."), to: stack)
         add(explanation("Independent utility; not affiliated with Keychron."), to: stack)
         return view
     }
 
-    func update(from scrolling: AutomaticNaturalScrolling, refreshing: Bool = false) {
+    func update(from scrolling: AutomaticNaturalScrolling, refreshing: Bool = false, statusInterval: Int = StatusInterval.defaultSeconds) {
+        let seconds = StatusInterval.validated(statusInterval)
+        // A background refresh must not reset a slider drag in progress.
+        if displayedInterval != seconds {
+            intervalSlider.doubleValue = Double(StatusInterval.sliderIndex(for: seconds))
+            intervalLabel.stringValue = "Every \(seconds) seconds\(seconds == StatusInterval.defaultSeconds ? " (default)" : "")"
+            intervalSlider.setAccessibilityValueDescription("Every \(seconds) seconds")
+            displayedInterval = seconds
+        }
         automaticSwitch.state = scrolling.isAutomatic ? .on : .off
         naturalSwitch.state = scrolling.state.live.map { $0 ? .on : .off } ?? .mixed
         naturalSwitch.isEnabled = !scrolling.isAutomatic && scrolling.state.live != nil
@@ -245,6 +286,11 @@ final class SettingsWindow: NSWindowController, NSToolbarDelegate {
     }
     @objc private func changeAutomatic() { automaticChanged(automaticSwitch.state == .on) }
     @objc private func changeNatural() { naturalChanged(naturalSwitch.state == .on) }
+    @objc private func changeInterval() {
+        let seconds = StatusInterval.seconds(at: intervalSlider.doubleValue)
+        intervalSlider.doubleValue = Double(StatusInterval.sliderIndex(for: seconds))
+        intervalChanged(seconds)
+    }
     @objc private func refreshDiagnostics() { refreshRequested() }
     @objc private func copyDiagnostics() {
         updateDiagnostics()

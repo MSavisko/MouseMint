@@ -27,7 +27,7 @@ if CommandLine.arguments.contains("--scroll-status") {
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var item: NSStatusItem!
     private let menu = NSMenu()
-    private var timer: Timer?
+    private lazy var polling = StatusPolling { [weak self] in self?.refresh() }
     private var reading: MouseReading?
     private var errorMessage: String?
     private var connectionUnavailable = false
@@ -45,7 +45,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         updateUI()
         refresh()
         if CommandLine.arguments.contains("--settings") { openSettings() }
-        timer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in self?.refresh() }
+        polling.start()
         NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(woke),
             name: NSWorkspace.didWakeNotification, object: nil)
     }
@@ -99,6 +99,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                         print("Settings window: \(settings.window?.title ?? "missing")")
                         print("Settings panes: \(settings.window?.toolbar?.items.map(\.label).joined(separator: ", ") ?? "missing")")
                         print("Selected pane: \(settings.selectedPane.title)")
+                        print("Status interval: \(self.polling.seconds) seconds; timer: \(self.polling.timer?.timeInterval ?? 0)")
                         print("Diagnostics actions: \(settings.refreshButton.title), \(settings.copyButton.title)")
                         print("Diagnostics preview:\n\(settings.diagnosticsText.string)")
                         print("Automatic switch: \(settings.automaticSwitch.state == .on ? "On" : "Off")")
@@ -134,7 +135,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func updateUI() {
-        settingsWindow?.update(from: naturalScrolling, refreshing: refreshing)
+        settingsWindow?.update(from: naturalScrolling, refreshing: refreshing, statusInterval: polling.seconds)
         menu.removeAllItems()
         label("Keychron M3", symbol: "computermouse")
         if let reading {
@@ -186,6 +187,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var diagnosticsReport: String {
         var text = "Keychron Charge — \(AppVersion.description)\n"
         text += "macOS: \(ProcessInfo.processInfo.operatingSystemVersionString)\n"
+        text += "Status check interval: \(polling.seconds) seconds\n"
         if let reading {
             text += "Connection: \(reading.mode.title)\nProduct ID: \(String(format: "%04X", reading.productID))\n"
             if let status = reading.status {
@@ -213,6 +215,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 guard let self else { return }
                 self.naturalScrolling.setManual(enabled)
                 self.updateUI()
+            }, intervalChanged: { [weak self] seconds in
+                guard let self else { return }
+                self.polling.setSeconds(seconds)
+                self.updateUI()
             }, refreshRequested: { [weak self] in
                 self?.refresh()
             }, diagnostics: { [weak self] in
@@ -220,7 +226,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             })
         }
         naturalScrolling.refreshStatus()
-        settingsWindow?.update(from: naturalScrolling, refreshing: refreshing)
+        settingsWindow?.update(from: naturalScrolling, refreshing: refreshing, statusInterval: polling.seconds)
         settingsWindow?.present()
     }
     @objc private func quit() { NSApp.terminate(nil) }

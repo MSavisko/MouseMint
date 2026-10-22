@@ -8,7 +8,7 @@ Open **[dist/Keychron Charge.app](dist/Keychron%20Charge.app)** in Finder. Click
 
 The dropdown contains status information, Settings, and Quit, with native monochrome macOS symbols and the matching connection-mode icon. Utility actions and detailed errors live in Settings.
 
-The icon changes with the connection: cable connector, USB receiver, or Bluetooth rune. The app checks every five seconds and after waking from sleep. It gives a cable connection priority, then a connected Bluetooth mouse, then a responding wireless receiver. An idle receiver alone does not count as an active mouse connection. No USB port is hard-coded.
+The icon changes with the connection: cable connector, USB receiver, or Bluetooth rune. The app checks at your chosen interval (five seconds by default), after waking from sleep, and when opening the menu. It gives a cable connection priority, then a connected Bluetooth mouse, then a responding wireless receiver. An idle receiver alone does not count as an active mouse connection. No USB port is hard-coded.
 
 When the mouse is disconnected or its receiver reports no connected mouse, the menu bar shows a circled X and **Not connected**. The menu suggests waking the mouse or checking its connection. Receiver timeouts, USB access failures, and read errors are labelled separately as **Read error**.
 
@@ -21,13 +21,15 @@ open "dist/Keychron Charge.app"
 
 ## Automatic Natural Scrolling
 
-Settings uses the native macOS preferences toolbar to switch between **Natural Scrolling**, **Diagnostics**, and **About** panes. The toolbar is not customizable and always identifies the selected pane, following [Apple's settings-window guidance](https://developer.apple.com/design/human-interface-guidelines/settings). Diagnostics contains a selectable, read-only report, **Refresh Now**, and **Copy Diagnostics** with confirmation. The report updates as the app polls and includes connection, battery, raw mouse report (or Bluetooth source), app/macOS versions, scrolling values, and errors. About contains the app version and short description.
+Settings uses the native macOS preferences toolbar to switch between **General**, **Natural Scrolling**, **Diagnostics**, and **About** panes. The toolbar is not customizable and always identifies the selected pane, following [Apple's settings-window guidance](https://developer.apple.com/design/human-interface-guidelines/settings). **General** has a slider for **2, 3, 5, 8, or 10 seconds** between periodic status checks. Changes replace the active timer and are saved across launches; the default remains 5 seconds. This controls battery/connection checks and scrolling automation, not the mouse's hardware movement report rate. Faster Bluetooth checks cannot force fresher macOS battery data.
+
+Diagnostics contains a selectable, read-only report, **Refresh Now**, and **Copy Diagnostics** with confirmation. The report updates as the app polls and includes connection, battery, raw mouse report (or Bluetooth source), app/macOS versions, status interval, scrolling values, and errors. About contains the app version and short description.
 
 While the app is running, it turns macOS **Natural Scrolling off when the M3 is connected** and **on when it disconnects**. This is the shared macOS setting, so it also changes trackpad scrolling. Cable, receiver, and Bluetooth connections all use the same rule. The menu shows the current setting.
 
 Open **Settings… → Natural Scrolling** to control this behavior. Turn off **Automatically switch Natural Scrolling** to stop syncing with the mouse connection. Turning it off keeps the current macOS setting; you can then change **Natural Scrolling** in this pane or in macOS Settings. Your automatic-switching choice is saved across launches. It starts enabled to preserve the existing behavior. The pane includes short explanations and the connection rule.
 
-Connection checks run every five seconds. A receiver reporting no connected mouse counts as disconnected even if the receiver remains plugged in. A timeout or battery-read error does not establish a disconnection: the app keeps the scrolling setting unchanged. A directly enumerated cable/Bluetooth mouse still counts as connected if its battery read fails.
+Connection checks use the interval chosen in General. A receiver reporting no connected mouse counts as disconnected even if the receiver remains plugged in. A timeout or battery-read error does not establish a disconnection: the app keeps the scrolling setting unchanged. A directly enumerated cable/Bluetooth mouse still counts as connected if its battery read fails.
 
 The app applies changes immediately and saves the preference, only writing when the requested state differs. While automatic switching is enabled, it will reapply its rule if you change Natural Scrolling manually. Re-enabling automation requests a fresh connection check. Quitting stops automation and leaves the last setting in place. The implementation uses a native, unsupported macOS helper; a missing helper or failed change is reported in the menu and Settings window. See [implementation and validation](docs/natural-scrolling.md).
 
@@ -62,6 +64,8 @@ Scope: this M3-A3, its D031 USB-C receiver, and one mouse at a time. USB-A D030 
 The tests cover captured reports, malformed and unrelated responses, valid 0%, charging state, Bluetooth battery validation, transport identity, and connection priority. Live tests verified cable mode in a different USB port with the receiver attached, Bluetooth with the receiver attached, and 2.4 GHz receiver mode. See [protocol evidence](docs/usb-protocol.md) for captures and limitations.
 
 ## Sources
+
+See the [M3-A3 capability inventory](docs/m3-a3-capabilities.md) for vendor-documented controls, read-only configuration evidence, firmware/transport limits, and the status-interval research. No vendor minimum for battery-status queries was found; 2 seconds is an app choice, not a Keychron recommendation.
 
 - [Official Keychron Engine and connection instructions](https://www.keychron.com/pages/learn-more-how-to-use-keychron-mouse-software).
 - [KeyTray M3 driver](https://github.com/voxors/KeyTray/blob/94b2841971c7c41d660fe5729c69b6cb2d2ee4dd/src/pkg/driver/keychronM3/keychronM3.go). See [third-party notices](THIRD_PARTY_NOTICES.md).

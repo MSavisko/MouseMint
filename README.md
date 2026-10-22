@@ -2,6 +2,8 @@
 
 A tiny native macOS menu bar app for the **Keychron M3-A3**. It displays battery percentage and the active connection mode: **USB cable, USB-C 2.4 GHz receiver, or Bluetooth**.
 
+**Keychron Engine is not required or used by this app.** Keychron Charge communicates directly with the mouse/receiver through macOS IOKit and reads Bluetooth battery information from macOS. It works without Engine installed or running.
+
 ## Run
 
 Open **[dist/Keychron Charge.app](dist/Keychron%20Charge.app)** in Finder. Click the menu bar icon for connection mode, battery percentage, charging status, and the current Natural Scrolling state. Open **Settings…** for controls and utilities.
@@ -64,6 +66,8 @@ Scope: this M3-A3, its D031 USB-C receiver, and one mouse at a time. USB-A D030 
 The tests cover captured reports, malformed and unrelated responses, valid 0%, charging state, Bluetooth battery validation, transport identity, and connection priority. Live tests verified cable mode in a different USB port with the receiver attached, Bluetooth with the receiver attached, and 2.4 GHz receiver mode. See [protocol evidence](docs/usb-protocol.md) for captures and limitations.
 
 ## Sources
+
+Keychron Engine 1.0.10 for macOS was inspected only as a protocol research reference. It was neither installed nor executed during the investigation, and Keychron Charge does not bundle, launch, or depend on it. See the [protocol investigation](docs/usb-protocol.md#official-software-evidence).
 
 See the [M3-A3 capability inventory](docs/m3-a3-capabilities.md) for vendor-documented controls, read-only configuration evidence, firmware/transport limits, and the status-interval research. No vendor minimum for battery-status queries was found; 2 seconds is an app choice, not a Keychron recommendation.
 

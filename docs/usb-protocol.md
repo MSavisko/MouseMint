@@ -71,3 +71,55 @@ Relevant x86-64 executable addresses in that exact version:
 No electrical current, voltage, wattage, or charging-time field was found in this basic-status response. The app focuses on the battery percentage requested by the user; it does not infer current from USB descriptors or the battery's advertised capacity.
 
 The decoder tests use synthetic checks plus the actual captured response. They do not establish accuracy of the mouse's percentage estimate or untested transports. The final app's `--read-json` command successfully read the same 100% status from the connected mouse. LaunchServices accepted the app launch; visual inspection through the computer-use tool timed out. A subsequent `--check-ui` run exercised the real NSApplication lifecycle and asynchronous USB read, confirming the actual status button title was `100%` and the built NSMenu contained `Battery: 100%` and `Status: Fully charged`. This verifies data flow into native UI components, but is not a screenshot-based layout inspection.
+
+## Receiver and Bluetooth support — 2026-10-22
+
+The USB-C receiver enumerated as **Keychron Link `3434:D031`**. The direct mouse remained `3434:D033` when moved to another MacBook USB port. Port/location IDs are deliberately not used to identify the mouse.
+
+### USB-C receiver
+
+The D031 receiver did not provide a working `GET_REPORT 0x51` response to the wired `51 06` sequence. The official Engine's `MainWindow::SetRF24GNotifyData()` at `0x100046260` sends the 21-byte feature command `51 0c 02 00 ... 00`, which requests wireless status notifications. Registering the input callback **before** sending that request produced fresh 21-byte input reports:
+
+```text
+54 e4 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+54 e3 00 03 00 62 00 07 31 2e 32 2e 33 72 00 00 00 00 00 00 00
+```
+
+The E4 packet acknowledges the request. The E3 packet contains a status/result, link state, power state at offset 4, battery at offset 5 (`62` = 98%), and a NUL-terminated firmware string at offset 8 (`1.2.3r`), with its length including the terminator at offset 7. Subsequent captures reported 100% after the mouse had charged over its cable. The decoder accepts only the complete observed frame shape, expected header/status/link markers, 0–100%, recognized power states, and a bounded printable firmware string with its terminating NUL.
+
+When the mouse was switched to wired mode, the still-plugged receiver instead returned:
+
+```text
+54 e4 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+```
+
+It sent no E3 mouse battery packet. The app treats that as unavailable and never reuses its previous wireless percentage. The receiver handler opens only the telemetry collection, handles callbacks on its worker run loop, and unregisters/unschedules before releasing the input buffer. A missing reply times out after 1.2 seconds. It does not change pairing, DPI, button mappings, or firmware.
+
+### Bluetooth LE
+
+After the user switched to Bluetooth and verified pointer movement, `hidutil list` showed **Keychron M3 `3434:D033`**, transport **Bluetooth Low Energy**, usage page 1 / usage 2. Its HID report descriptor has no battery field, but macOS already publishes a battery entry. Both `system_profiler SPBluetoothDataType` and `pmset -g accps` reported **100%**; the firmware was **1.2.3r**, matching the receiver status packet.
+
+The native app reads that same accessory power source using `IOPSCopyPowerSourcesByType(4)`, followed by `IOPSCopyPowerSourcesList` and `IOPSGetPowerSourceDescription`. Apple declares value 4 as `kIOPSSourceForAccessories` in [IOPowerSourcesPrivate.h](https://github.com/apple-oss-distributions/IOKitUser/blob/main/ps.subproj/IOPowerSourcesPrivate.h). This is unsupported SPI; the function is found with `dlsym` and its absence produces an unavailable percentage rather than a launch failure.
+
+The matching battery entry contained:
+
+```text
+Accessory Category = Mouse
+Current Capacity = 100
+Max Capacity = 100
+Name = Keychron M3
+Power Source State = Battery Power
+Product ID = 53299 (D033)
+Transport Type = Bluetooth LE
+Vendor ID = 13364 (3434)
+```
+
+Only those device-specific fields are read. The app requires a currently enumerated M3 Bluetooth HID mouse before using this battery entry, so an old accessory record or plugged-in dongle cannot falsely select Bluetooth mode. The app does not initiate a Bluetooth scan, connection, or pairing operation.
+
+### Live validation
+
+- **Cable with receiver still attached, different cable port:** native UI showed `Connection: USB cable`, `Battery: 99%`, `Status: Charging`.
+- **Bluetooth with receiver still attached:** final native UI showed `Mode icon: Bluetooth`, `Connection: Bluetooth`, `Battery: 100%`, `Status: On battery`.
+- **Back to receiver, cable unplugged:** final executable read `mode: receiver`, PID D031, fresh E3 packet with `percentage: 100`, `powerState: 0`. Native UI check confirmed `Mode icon: 2.4 GHz receiver`, `Battery: 100%`, and `Status: On battery`.
+
+Selection order is cable, connected Bluetooth mouse, responding receiver. Tests cover the mode identity and priority rules, malformed USB/receiver packets, unrelated Bluetooth battery entries, missing/invalid capacities, and legitimate 0%. The earlier computer-use tool timed out; native UI verification therefore inspects the real NSStatusItem/NSMenu state instead of claiming a screenshot-based visual check. Physical transitions and mouse identity were cross-checked through HID enumeration and the user's pointer tests.

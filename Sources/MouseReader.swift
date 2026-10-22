@@ -2,11 +2,12 @@ import Foundation
 import IOKit.hid
 
 enum MouseReadError: Error, CustomStringConvertible {
-    case disconnected, access(IOReturn), request(IOReturn), response(IOReturn), invalid
+    case disconnected, receiverUnavailable, access(IOReturn), request(IOReturn), response(IOReturn), invalid
 
     var description: String {
         switch self {
-        case .disconnected: return "Connect your M3 directly with a USB data cable."
+        case .disconnected: return "Connect your M3 by cable, receiver, or Bluetooth."
+        case .receiverUnavailable: return "Receiver connected; mouse asleep, disconnected, or not responding."
         case .access(let code): return "USB access denied or busy (\(Self.hex(code))). Close Keychron Engine and reopen this app."
         case .request(let code): return "Status request failed (\(Self.hex(code))). Reconnect the mouse."
         case .response(let code): return "Status read failed (\(Self.hex(code))). Reconnect the mouse."
@@ -18,18 +19,37 @@ enum MouseReadError: Error, CustomStringConvertible {
 
 struct MouseReading: Codable {
     let date: Date
-    let status: BatteryStatus
+    let status: BatteryStatus?
     let rawReport: [UInt8]
+    let mode: ConnectionMode
+    let productID: Int
 }
 
 enum MouseReader {
     static func read() throws -> MouseReading {
         let manager = IOHIDManagerCreate(kCFAllocatorDefault, IOOptionBits(kIOHIDOptionsTypeNone))
-        IOHIDManagerSetDeviceMatching(manager, [kIOHIDVendorIDKey: 0x3434,
-            kIOHIDProductIDKey: 0xD033, kIOHIDPrimaryUsagePageKey: 0x8C,
-            kIOHIDPrimaryUsageKey: 1, kIOHIDTransportKey: "USB"] as CFDictionary)
-        guard let devices = IOHIDManagerCopyDevices(manager) as? Set<IOHIDDevice>,
-              let device = devices.first else { throw MouseReadError.disconnected }
+        IOHIDManagerSetDeviceMatching(manager, [kIOHIDVendorIDKey: 0x3434] as CFDictionary)
+        let devices = IOHIDManagerCopyDevices(manager) as? Set<IOHIDDevice> ?? []
+        let productID: (IOHIDDevice) -> Int = {
+            (IOHIDDeviceGetProperty($0, kIOHIDProductIDKey as CFString) as? NSNumber)?.intValue ?? 0
+        }
+        let mode: (IOHIDDevice) -> ConnectionMode? = { device in
+            func number(_ key: String) -> Int {
+                (IOHIDDeviceGetProperty(device, key as CFString) as? NSNumber)?.intValue ?? 0
+            }
+            return ConnectionMode.identify(vendorID: number(kIOHIDVendorIDKey), productID: productID(device),
+                transport: IOHIDDeviceGetProperty(device, kIOHIDTransportKey as CFString) as? String ?? "",
+                usagePage: number(kIOHIDPrimaryUsagePageKey), usage: number(kIOHIDPrimaryUsageKey))
+        }
+        guard let selectedMode = ConnectionMode.priority.first(where: { candidate in devices.contains(where: { mode($0) == candidate }) }),
+              let device = devices.first(where: { mode($0) == selectedMode }) else { throw MouseReadError.disconnected }
+        if selectedMode == .bluetooth {
+            return MouseReading(date: Date(), status: BluetoothBatteryReader.read(), rawReport: [], mode: .bluetooth, productID: productID(device))
+        }
+        if selectedMode == .receiver {
+            let (status, report) = try ReceiverReader.read(device)
+            return MouseReading(date: Date(), status: status, rawReport: report, mode: .receiver, productID: productID(device))
+        }
         let opened = IOHIDDeviceOpen(device, IOOptionBits(kIOHIDOptionsTypeNone))
         guard opened == kIOReturnSuccess else { throw MouseReadError.access(opened) }
         defer { IOHIDDeviceClose(device, IOOptionBits(kIOHIDOptionsTypeNone)) }
@@ -50,7 +70,7 @@ enum MouseReader {
             lastCode = IOHIDDeviceGetReport(device, kIOHIDReportTypeFeature, 0x51, &report, &length)
             if lastCode == kIOReturnSuccess,
                let status = BatteryStatus.decode(Array(report.prefix(length))) {
-                return MouseReading(date: Date(), status: status, rawReport: Array(report.prefix(length)))
+                return MouseReading(date: Date(), status: status, rawReport: Array(report.prefix(length)), mode: .cable, productID: productID(device))
             }
             Thread.sleep(forTimeInterval: 0.02)
         }

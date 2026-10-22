@@ -37,7 +37,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.delegate = self
         updateUI()
         refresh()
-        timer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in self?.refresh() }
+        timer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in self?.refresh() }
         NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(woke),
             name: NSWorkspace.didWakeNotification, object: nil)
     }
@@ -64,8 +64,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 self.updateUI()
                 if CommandLine.arguments.contains("--check-ui") {
                     print("Menu bar: \(self.item.button?.title ?? "missing")")
+                    print("Mode icon: \(self.item.button?.image?.accessibilityDescription ?? "missing")")
                     for row in self.menu.items where !row.isSeparatorItem { print(row.title) }
-                    NSApp.terminate(nil)
+                    exit(self.reading == nil ? 1 : 0)
                 }
             }
         }
@@ -84,17 +85,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func updateUI() {
         menu.removeAllItems()
-        label("Keychron M3 · USB")
+        label("Keychron M3")
         if let reading {
             let status = reading.status
-            item.button?.title = " \(status.percentage)%"
-            let icon = status.powerState == 1 ? "battery.100percent.bolt" :
-                (status.percentage <= 10 ? "battery.0percent" : status.percentage <= 30 ? "battery.25percent" :
-                 status.percentage <= 60 ? "battery.50percent" : status.percentage <= 85 ? "battery.75percent" : "battery.100percent")
-            item.button?.image = NSImage(systemSymbolName: icon, accessibilityDescription: "Mouse battery")
-            item.button?.toolTip = "Keychron M3: \(status.percentage)% · \(status.powerDescription)"
-            label("Battery: \(status.percentage)%")
-            label("Status: \(status.powerDescription)")
+            let level = status.map { "\($0.percentage)%" } ?? "—"
+            item.button?.title = " \(level)"
+            item.button?.image = ModeIcon.image(for: reading.mode)
+            item.button?.toolTip = "Keychron M3: \(level) · \(reading.mode.title) · \(status?.powerDescription ?? "Battery unavailable")"
+            label("Connection: \(reading.mode.title)")
+            label("Battery: \(status.map { "\($0.percentage)%" } ?? "Waiting for macOS")")
+            label("Status: \(status?.powerDescription ?? "Battery unavailable")")
             label("Updated: \(reading.date.formatted(date: .omitted, time: .standard))")
         } else {
             item.button?.title = " M3 —"
@@ -111,11 +111,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func copyDiagnostics() {
-        var text = "Keychron Charge 1.0\nUSB 3434:D033 · usage 008C:0001\n"
+        var text = "Keychron Charge 1.1\n"
         if let reading {
-            text += "Battery: \(reading.status.percentage)%\nPower state: \(reading.status.powerState) (\(reading.status.powerDescription))\n"
+            text += "Connection: \(reading.mode.title)\nProduct ID: \(String(format: "%04X", reading.productID))\n"
+            if let status = reading.status {
+                text += "Battery: \(status.percentage)%\nPower state: \(status.powerState.map(String.init) ?? "unknown") (\(status.powerDescription))\n"
+            } else { text += "Battery unavailable\n" }
             text += "Read at: \(reading.date.ISO8601Format())\n"
-            text += "Report: " + reading.rawReport.map { String(format: "%02x", $0) }.joined(separator: " ")
+            text += reading.mode == .bluetooth ? "Source: macOS accessory battery service" : "Report: " + reading.rawReport.map { String(format: "%02x", $0) }.joined(separator: " ")
         } else { text += errorMessage ?? "No reading yet" }
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(text, forType: .string)
@@ -124,7 +127,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func about() {
         let alert = NSAlert()
         alert.messageText = "Keychron Charge"
-        alert.informativeText = "A small USB battery monitor for Keychron M3 (3434:D033).\n\nRefreshes every 30 seconds. Battery percentage and power state are reported by the mouse.\n\nNo network connection or mouse configuration changes."
+        alert.informativeText = "A small battery monitor for Keychron M3.\n\nSupports USB cable, USB-C receiver, and Bluetooth. Checks the connection every five seconds. Bluetooth percentage comes from macOS.\n\nNo network connection or mouse configuration changes."
         NSApp.activate(ignoringOtherApps: true)
         alert.runModal()
     }

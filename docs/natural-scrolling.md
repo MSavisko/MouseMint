@@ -4,12 +4,14 @@ Added 2026-10-23 for the user's requested rule: **off when the M3 is connected, 
 
 ## Settings controls
 
-The menu's **Settings…** row opens a native window with short explanations and two switches:
+The menu's **Settings…** row opens a native window with a noncustomizable preferences toolbar. It switches between **Natural Scrolling**, **Diagnostics**, and **About**; the selected pane is highlighted. Natural Scrolling contains short explanations and two switches:
 
 - **Automatically switch Natural Scrolling** enables the connection rule below. Its value is stored in the app's `automaticallySwitchNaturalScrolling` preference, defaulting to true when absent to preserve existing behavior. Turning it off does not write the system scrolling setting. Connection checks and battery monitoring continue, but no connection observation can apply a scrolling change while disabled, including an in-flight query. Re-enabling requests a fresh connection reading.
 - **Natural Scrolling** reflects the live native value. It is editable only while automation is off and the native setting is available. Manual changes use the same verified backend as automatic changes. Disabling automation also lets changes made in macOS Settings persist.
 
 The menu shows `(automatic)` or `(manual)` beside the live setting. The Settings window updates with each refresh and displays application errors. Closing the window does not change either setting.
+
+**Diagnostics** contains the current read-only report, **Refresh Now**, and **Copy Diagnostics**. The copied content matches the current preview, and a confirmation appears after copying. Refresh uses the app's existing asynchronous reader and disables the button while it runs. Reports include the app/macOS versions, battery, connection, raw report or Bluetooth battery source, scrolling preference/live values, and errors. **About** shows the version and app description. Refresh, copying, About, and detailed error messages have moved out of the status menu; Settings and Quit remain there as standard app actions.
 
 ## Applying the setting
 
@@ -67,3 +69,4 @@ Example when the mouse is disconnected:
 - Automated checks cover connected/disconnected/unknown transitions, unchanged-state writes, reconnects, mismatched saved/live values, failure visibility and retry, direct-mouse evidence during battery errors, and receiver no-target acknowledgement validation. They use an injected backend and do not change system settings.
 - Settings checks exercise the real native switches' target/actions with an injected scrolling backend: disabling performs no system write, connection changes cannot override manual mode, manual changes apply, and re-enabling resumes the connection rule. A separate process verifies the disabled preference survives a relaunch using an isolated test domain. The native Settings content was rendered and visually inspected for readable explanations and unclipped controls.
 - The final app's `--check-ui --settings` check confirmed a live receiver reading at 100%, the Settings menu row and window, the saved automatic switch On, and the manual switch reflecting Off and disabled while automation is active.
+- The pane update was verified with all three native toolbar target/actions, selected-item highlighting, asynchronous-refresh button states, and exact copied text in a private pasteboard. Full native window renders were inspected for each pane and copy confirmation. A final `--check-ui --settings` run on version 1.4 (5) confirmed the status menu contains Settings and Quit as its only actions, all three pane labels are present, and Diagnostics contains the live cable-connected M3's 100%/fully charged report, versions, and scrolling values.

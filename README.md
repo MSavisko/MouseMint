@@ -4,9 +4,9 @@ A tiny native macOS menu bar app for the **Keychron M3-A3**. It displays battery
 
 ## Run
 
-Open **[dist/Keychron Charge.app](dist/Keychron%20Charge.app)** in Finder. Click the menu bar icon for connection mode, battery percentage, charging status, Settings, manual refresh, and diagnostics.
+Open **[dist/Keychron Charge.app](dist/Keychron%20Charge.app)** in Finder. Click the menu bar icon for connection mode, battery percentage, charging status, and the current Natural Scrolling state. Open **Settings…** for controls and utilities.
 
-The dropdown uses native macOS symbols for battery, status, update time, Refresh, Copy Diagnostics, About, and Quit, alongside the matching connection-mode icon. Icons use the system's monochrome menu appearance.
+The dropdown contains status information, Settings, and Quit, with native monochrome macOS symbols and the matching connection-mode icon. Utility actions and detailed errors live in Settings.
 
 The icon changes with the connection: cable connector, USB receiver, or Bluetooth rune. The app checks every five seconds and after waking from sleep. It gives a cable connection priority, then a connected Bluetooth mouse, then a responding wireless receiver. An idle receiver alone does not count as an active mouse connection. No USB port is hard-coded.
 
@@ -21,9 +21,11 @@ open "dist/Keychron Charge.app"
 
 ## Automatic Natural Scrolling
 
+Settings uses the native macOS preferences toolbar to switch between **Natural Scrolling**, **Diagnostics**, and **About** panes. The toolbar is not customizable and always identifies the selected pane, following [Apple's settings-window guidance](https://developer.apple.com/design/human-interface-guidelines/settings). Diagnostics contains a selectable, read-only report, **Refresh Now**, and **Copy Diagnostics** with confirmation. The report updates as the app polls and includes connection, battery, raw mouse report (or Bluetooth source), app/macOS versions, scrolling values, and errors. About contains the app version and short description.
+
 While the app is running, it turns macOS **Natural Scrolling off when the M3 is connected** and **on when it disconnects**. This is the shared macOS setting, so it also changes trackpad scrolling. Cable, receiver, and Bluetooth connections all use the same rule. The menu shows the current setting.
 
-Open **Settings…** in the menu to control this behavior. Turn off **Automatically switch Natural Scrolling** to stop syncing with the mouse connection. Turning it off keeps the current macOS setting; you can then change **Natural Scrolling** in this window or in macOS Settings. Your automatic-switching choice is saved across launches. It starts enabled to preserve the existing behavior. The window includes short explanations and the connection rule.
+Open **Settings… → Natural Scrolling** to control this behavior. Turn off **Automatically switch Natural Scrolling** to stop syncing with the mouse connection. Turning it off keeps the current macOS setting; you can then change **Natural Scrolling** in this pane or in macOS Settings. Your automatic-switching choice is saved across launches. It starts enabled to preserve the existing behavior. The pane includes short explanations and the connection rule.
 
 Connection checks run every five seconds. A receiver reporting no connected mouse counts as disconnected even if the receiver remains plugged in. A timeout or battery-read error does not establish a disconnection: the app keeps the scrolling setting unchanged. A directly enumerated cable/Bluetooth mouse still counts as connected if its battery read fails.
 
@@ -53,7 +55,7 @@ Scope: this M3-A3, its D031 USB-C receiver, and one mouse at a time. USB-A D030 
 "dist/Keychron Charge.app/Contents/MacOS/KeychronCharge" --scroll-status
 ```
 
-`--read-json` returns one reading. `--check-ui` runs the native app lifecycle, reads the mouse, prints the actual status button's title, icon description, and menu contents, then exits. Add `--settings` to also inspect the Settings window and its switches. Run USB checks from a normal terminal; a restricted agent terminal can enumerate devices but cannot open their HID interfaces.
+`--read-json` returns one reading. `--check-ui` runs the native app lifecycle, reads the mouse, prints the actual status button's title, icon description, and menu contents, then exits. Add `--settings` to also inspect the Settings toolbar panes, scrolling switches, diagnostics actions, and current report. Run USB checks from a normal terminal; a restricted agent terminal can enumerate devices but cannot open their HID interfaces.
 
 `--scroll-status` returns the saved preference and native scrolling state. All three diagnostic commands are read-only and do not run the scrolling automation.
 

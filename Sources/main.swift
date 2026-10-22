@@ -56,6 +56,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func refresh() {
         guard !refreshing else { return }
         refreshing = true
+        updateUI()
         worker.async { [weak self] in
             let result = Result { try MouseReader.read() }
             let scrollConnection: MouseConnectionState
@@ -96,6 +97,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                     }
                     if let settings = self.settingsWindow {
                         print("Settings window: \(settings.window?.title ?? "missing")")
+                        print("Settings panes: \(settings.window?.toolbar?.items.map(\.label).joined(separator: ", ") ?? "missing")")
+                        print("Selected pane: \(settings.selectedPane.title)")
+                        print("Diagnostics actions: \(settings.refreshButton.title), \(settings.copyButton.title)")
+                        print("Diagnostics preview:\n\(settings.diagnosticsText.string)")
                         print("Automatic switch: \(settings.automaticSwitch.state == .on ? "On" : "Off")")
                         print("Manual switch: \(settings.naturalSwitch.state == .on ? "On" : "Off"); editable: \(settings.naturalSwitch.isEnabled)")
                     }
@@ -129,7 +134,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func updateUI() {
-        settingsWindow?.update(from: naturalScrolling)
+        settingsWindow?.update(from: naturalScrolling, refreshing: refreshing)
         menu.removeAllItems()
         label("Keychron M3", symbol: "computermouse")
         if let reading {
@@ -159,13 +164,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 item.button?.image = ModeIcon.image(for: nil)
                 item.button?.toolTip = "Keychron M3 is not connected. Wake the mouse or check its connection."
                 label("Status: Not connected", symbol: "xmark.circle")
-                label("Wake the mouse or check its cable, receiver, or Bluetooth.")
             } else if let errorMessage {
                 item.button?.title = " Read error"
                 item.button?.image = NSImage(systemSymbolName: "exclamationmark.triangle", accessibilityDescription: "Mouse status unavailable")
                 item.button?.toolTip = errorMessage
                 label("Status: Unable to read mouse", symbol: "exclamationmark.triangle")
-                label(errorMessage)
             } else {
                 item.button?.title = " Checking…"
                 item.button?.image = NSImage(systemSymbolName: "ellipsis.circle", accessibilityDescription: "Checking mouse connection")
@@ -175,18 +178,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         menu.addItem(.separator())
         label(naturalScrolling.menuTitle, symbol: naturalScrolling.errorMessage == nil ? "arrow.up.arrow.down" : "exclamationmark.triangle")
-        if let errorMessage = naturalScrolling.errorMessage { label(errorMessage) }
         menu.addItem(.separator())
-        action("Refresh Now", #selector(refresh), symbol: "arrow.clockwise", key: "r")
-        action("Copy Diagnostics", #selector(copyDiagnostics), symbol: "doc.on.doc")
         action("Settings…", #selector(openSettings), symbol: "gearshape", key: ",")
-        action("About Keychron Charge", #selector(about), symbol: "info.circle")
-        menu.addItem(.separator())
         action("Quit Keychron Charge", #selector(quit), symbol: "power", key: "q")
     }
 
-    @objc private func copyDiagnostics() {
-        var text = "Keychron Charge 1.3\n"
+    private var diagnosticsReport: String {
+        var text = "Keychron Charge — \(AppVersion.description)\n"
+        text += "macOS: \(ProcessInfo.processInfo.operatingSystemVersionString)\n"
         if let reading {
             text += "Connection: \(reading.mode.title)\nProduct ID: \(String(format: "%04X", reading.productID))\n"
             if let status = reading.status {
@@ -196,17 +195,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             text += reading.mode == .bluetooth ? "Source: macOS accessory battery service" : "Report: " + reading.rawReport.map { String(format: "%02x", $0) }.joined(separator: " ")
         } else { text += errorMessage ?? "No reading yet" }
         text += "\n\(naturalScrolling.menuTitle)\n"
+        text += "Automatic switching: \(naturalScrolling.isAutomatic ? "On" : "Off")\n"
+        text += "Natural Scrolling saved: \(naturalScrolling.state.preference.map { $0 ? "On" : "Off" } ?? "Unavailable")\n"
+        text += "Natural Scrolling live: \(naturalScrolling.state.live.map { $0 ? "On" : "Off" } ?? "Unavailable")\n"
         if let error = naturalScrolling.errorMessage { text += "Scrolling error: \(error)\n" }
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(text, forType: .string)
-    }
-
-    @objc private func about() {
-        let alert = NSAlert()
-        alert.messageText = "Keychron Charge"
-        alert.informativeText = "A small battery monitor for Keychron M3.\n\nSupports USB cable, USB-C receiver, and Bluetooth. Checks the connection every five seconds. Bluetooth percentage comes from macOS.\n\nOptional automatic Natural Scrolling switches off when the mouse connects and on when it disconnects. Open Settings to control it. This macOS setting also affects the trackpad."
-        NSApp.activate(ignoringOtherApps: true)
-        alert.runModal()
+        return text
     }
 
     @objc private func openSettings() {
@@ -220,10 +213,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 guard let self else { return }
                 self.naturalScrolling.setManual(enabled)
                 self.updateUI()
+            }, refreshRequested: { [weak self] in
+                self?.refresh()
+            }, diagnostics: { [weak self] in
+                self?.diagnosticsReport ?? "No diagnostic reading available."
             })
         }
         naturalScrolling.refreshStatus()
-        settingsWindow?.update(from: naturalScrolling)
+        settingsWindow?.update(from: naturalScrolling, refreshing: refreshing)
         settingsWindow?.present()
     }
     @objc private func quit() { NSApp.terminate(nil) }

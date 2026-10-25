@@ -1,7 +1,8 @@
+import XCTest
 import Foundation
 
-@main struct PreferencesMigrationTests {
-    static func main() {
+final class PreferencesMigrationTests: XCTestCase {
+    func testBehavior() {
         let scrolling = "automaticallySwitchNaturalScrolling"
         let interval = "statusCheckIntervalSeconds"
 
@@ -18,17 +19,17 @@ import Foundation
                 defaults.synchronize()
             }
             PreferencesMigration.migrate(defaults: defaults, domain: domain, legacyDomain: legacyDomain)
-            precondition(SavedScrollingPreferences(defaults: defaults).automaticallySwitch == expectedScrolling)
-            precondition(StatusPollingPreferences(defaults: defaults).seconds == expectedInterval)
-            precondition((defaults.persistentDomain(forName: legacyDomain)?.count ?? 0) == legacy.count)
-            precondition(defaults.object(forKey: "unrelated") == nil)
+            XCTAssertTrue(SavedScrollingPreferences(defaults: defaults).automaticallySwitch == expectedScrolling)
+            XCTAssertTrue(StatusPollingPreferences(defaults: defaults).seconds == expectedInterval)
+            XCTAssertTrue((defaults.persistentDomain(forName: legacyDomain)?.count ?? 0) == legacy.count)
+            XCTAssertTrue(defaults.object(forKey: "unrelated") == nil)
 
             // Later launches must retain MouseMint changes even if old settings change.
             defaults.set(!expectedScrolling, forKey: scrolling)
             defaults.set(8, forKey: interval)
             PreferencesMigration.migrate(defaults: defaults, domain: domain, legacyDomain: legacyDomain)
-            precondition(SavedScrollingPreferences(defaults: defaults).automaticallySwitch == !expectedScrolling)
-            precondition(StatusPollingPreferences(defaults: defaults).seconds == 8)
+            XCTAssertTrue(SavedScrollingPreferences(defaults: defaults).automaticallySwitch == !expectedScrolling)
+            XCTAssertTrue(StatusPollingPreferences(defaults: defaults).seconds == 8)
         }
 
         check(legacy: [scrolling: false, interval: 10, "unrelated": "ignore"], expectedScrolling: false, expectedInterval: 10)

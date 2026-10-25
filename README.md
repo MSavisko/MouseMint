@@ -14,14 +14,23 @@ The icon changes with the connection: cable connector, USB receiver, or Bluetoot
 
 When the mouse is disconnected or its receiver reports no connected mouse, the menu bar shows a circled X and **Not connected**. The menu suggests waking the mouse or checking its connection. Receiver timeouts, USB access failures, and read errors are labelled separately as **Read error**.
 
-Building requires Apple Silicon, macOS 13 or later, and Xcode Command Line Tools (`xcode-select --install`). The app is locally ad-hoc signed, not notarized for distribution. It does not add itself to login items, use a network service, install a driver, or change mouse configuration.
+Building requires an Apple Silicon Mac, **Xcode 27.1**, and **mise 2026.6.10 or later**. Select Xcode 27.1 as your active developer tools; Command Line Tools alone are not enough. The app runs on macOS 13 or later. It is locally ad-hoc signed, not notarized for distribution.
 
 ```sh
 git clone https://github.com/MSavisko/MouseMint.git
 cd MouseMint
-./build.sh
+brew install mise
+mise trust
+mise install --locked
+mise run build
 open "dist/MouseMint.app"
 ```
+
+Tuist **4.211.0** is pinned in `mise.toml`, with its download and checksum recorded in `mise.lock`. Swift and the macOS SDK come from the Xcode version checked by `Tuist.swift`. There are no third-party Swift package dependencies.
+
+To work in Xcode, run `mise run generate` and open `MouseMint.xcworkspace`. Edit `Project.swift` for project changes; the workspace and project are generated and stay out of Git. `build.sh` and `test.sh` remain shortcuts to the same pinned build tools.
+
+The app does not add itself to login items, use a network service, install a driver, or change mouse configuration.
 
 Upgrading from Keychron Charge: MouseMint carries over your automatic scrolling and status-check interval settings on its first normal launch. Quit the old app before opening MouseMint.
 
@@ -56,7 +65,7 @@ Scope: this M3-A3, its D031 USB-C receiver, and one mouse at a time. USB-A D030 
 ## Validation and diagnostics
 
 ```sh
-./test.sh
+mise run test
 "dist/MouseMint.app/Contents/MacOS/MouseMint" --read-json
 "dist/MouseMint.app/Contents/MacOS/MouseMint" --check-ui
 "dist/MouseMint.app/Contents/MacOS/MouseMint" --check-ui --settings
@@ -67,7 +76,7 @@ Scope: this M3-A3, its D031 USB-C receiver, and one mouse at a time. USB-A D030 
 
 `--scroll-status` returns the saved preference and native scrolling state. All three diagnostic commands are read-only and do not run the scrolling automation.
 
-The tests cover captured reports, malformed and unrelated responses, valid 0%, charging state, Bluetooth battery validation, transport identity, and connection priority. Live tests verified cable mode in a different USB port with the receiver attached, Bluetooth with the receiver attached, and 2.4 GHz receiver mode. See [protocol evidence](docs/usb-protocol.md) for captures and limitations.
+The native XCTest suite covers captured reports, malformed and unrelated responses, valid 0%, charging state, Bluetooth battery validation, transport identity, connection priority, scrolling behavior, settings migration, and native Settings controls. A separate helper checks that preferences survive across processes. Tests run without launching mouse polling or changing system scrolling, and render Settings previews into `.build`. Live tests verified cable mode in a different USB port with the receiver attached, Bluetooth with the receiver attached, and 2.4 GHz receiver mode. See [protocol evidence](docs/usb-protocol.md) for captures and limitations.
 
 ## Sources
 

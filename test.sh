@@ -1,18 +1,6 @@
 #!/bin/zsh
 set -euo pipefail
 cd "${0:A:h}"
-mkdir -p .build/module-cache
-xcrun swiftc -module-cache-path .build/module-cache Sources/BatteryStatus.swift Sources/BluetoothBatteryReader.swift Sources/ConnectionMode.swift Tests/BatteryTests.swift -o .build/battery-tests
-.build/battery-tests
-xcrun swiftc -module-cache-path .build/module-cache \
-  Sources/BatteryStatus.swift Sources/BluetoothBatteryReader.swift Sources/ConnectionMode.swift \
-  Sources/MouseReader.swift Sources/ReceiverReader.swift Sources/NaturalScrolling.swift \
-  Tests/NaturalScrollingTests.swift -o .build/natural-scrolling-tests
-.build/natural-scrolling-tests
-xcrun swiftc -module-cache-path .build/module-cache \
-  Sources/NaturalScrolling.swift Sources/StatusPolling.swift Sources/PreferencesMigration.swift \
-  Tests/PreferencesMigrationTests.swift -o .build/preferences-migration-tests
-.build/preferences-migration-tests
-xcrun swiftc -module-cache-path .build/module-cache \
-  Sources/NaturalScrolling.swift Sources/StatusPolling.swift Sources/SettingsWindow.swift Tests/SettingsTests.swift -o .build/settings-tests
-.build/settings-tests
+mise exec -- tuist test MouseMint --no-selective-testing --no-binary-cache --no-upload \
+  -- -destination 'platform=macOS,arch=arm64' -derivedDataPath "$PWD/.build/DerivedData" \
+  -parallel-testing-enabled NO

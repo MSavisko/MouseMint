@@ -1,3 +1,4 @@
+import XCTest
 import AppKit
 
 private final class PreviewBackend: NaturalScrollingBackend {
@@ -10,29 +11,22 @@ private final class PreviewBackend: NaturalScrollingBackend {
     }
 }
 
-@main struct SettingsTests {
-    static func main() throws {
-        // A separate process verifies that the preference survives relaunch.
-        if CommandLine.arguments.count == 3 && CommandLine.arguments[1] == "--verify-saved" {
-            let defaults = UserDefaults(suiteName: CommandLine.arguments[2])!
-            precondition(!SavedScrollingPreferences(defaults: defaults).automaticallySwitch)
-            precondition(StatusPollingPreferences(defaults: defaults).seconds == 10)
-            return
-        }
+final class SettingsTests: XCTestCase {
+    func testBehavior() throws {
         let domain = "io.github.msavisko.mousemint.tests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: domain)!
         defer { defaults.removePersistentDomain(forName: domain); defaults.synchronize() }
         let preferences = SavedScrollingPreferences(defaults: defaults)
-        precondition(preferences.automaticallySwitch) // Preserve existing behavior on upgrade.
+        XCTAssertTrue(preferences.automaticallySwitch) // Preserve existing behavior on upgrade.
         let pollingPreferences = StatusPollingPreferences(defaults: defaults)
-        precondition(pollingPreferences.seconds == 5)
+        XCTAssertTrue(pollingPreferences.seconds == 5)
         for invalid in [0, 1, 4, -1, 100] {
             pollingPreferences.seconds = invalid
-            precondition(pollingPreferences.seconds == 5)
+            XCTAssertTrue(pollingPreferences.seconds == 5)
         }
-        precondition(StatusInterval.seconds(at: .nan) == 5)
-        precondition(StatusInterval.seconds(at: -100) == 2)
-        precondition(StatusInterval.seconds(at: 100) == 10)
+        XCTAssertTrue(StatusInterval.seconds(at: .nan) == 5)
+        XCTAssertTrue(StatusInterval.seconds(at: -100) == 2)
+        XCTAssertTrue(StatusInterval.seconds(at: 100) == 10)
 
         let app = NSApplication.shared
         app.setActivationPolicy(.prohibited)
@@ -42,7 +36,7 @@ private final class PreviewBackend: NaturalScrollingBackend {
         var timerRequests = 0
         let polling = StatusPolling(preferences: pollingPreferences) { timerRequests += 1 }
         polling.start()
-        precondition(polling.timer?.timeInterval == 5)
+        XCTAssertTrue(polling.timer?.timeInterval == 5)
         let clipboard = NSPasteboard.withUniqueName()
         defer { clipboard.releaseGlobally() }
         var report = "Keychron M3\nBattery: 100%\nNatural Scrolling: Off"
@@ -63,75 +57,76 @@ private final class PreviewBackend: NaturalScrollingBackend {
             report
         }, pasteboard: clipboard)
         settings.update(from: controller, statusInterval: polling.seconds)
-        precondition(settings.selectedPane == .general)
+        XCTAssertTrue(settings.selectedPane == .general)
         // Exercise all five slider positions and the same scheduler used by
         // the app. Changing the interval replaces, rather than adds, a timer.
         for (index, seconds) in StatusInterval.seconds.enumerated() {
             let previous = polling.timer!
             settings.intervalSlider.doubleValue = Double(index)
             app.sendAction(settings.intervalSlider.action!, to: settings.intervalSlider.target, from: settings.intervalSlider)
-            precondition(!previous.isValid)
-            precondition(polling.seconds == seconds && polling.timer?.timeInterval == Double(seconds))
-            precondition(settings.intervalLabel.stringValue.contains("\(seconds) seconds"))
+            XCTAssertTrue(!previous.isValid)
+            XCTAssertTrue(polling.seconds == seconds && polling.timer?.timeInterval == Double(seconds))
+            XCTAssertTrue(settings.intervalLabel.stringValue.contains("\(seconds) seconds"))
         }
         // Verify actual run-loop delivery at the minimum supported interval,
         // then ensure the replaced two-second timer no longer fires.
         polling.setSeconds(2)
         RunLoop.main.run(until: Date(timeIntervalSinceNow: 2.2))
-        precondition(timerRequests == 1)
+        XCTAssertTrue(timerRequests == 1)
         polling.setSeconds(10)
         RunLoop.main.run(until: Date(timeIntervalSinceNow: 2.2))
-        precondition(timerRequests == 1)
+        XCTAssertTrue(timerRequests == 1)
         settings.update(from: controller, statusInterval: polling.seconds)
         polling.timer?.invalidate()
-        precondition(settings.automaticSwitch.state == .on)
-        precondition(!settings.naturalSwitch.isEnabled && settings.naturalSwitch.state == .off)
+        XCTAssertTrue(settings.automaticSwitch.state == .on)
+        XCTAssertTrue(!settings.naturalSwitch.isEnabled && settings.naturalSwitch.state == .off)
 
         // Exercise the actual controls' target/actions against an injected
         // backend, without altering this Mac's scroll direction.
         settings.automaticSwitch.state = .off
         app.sendAction(settings.automaticSwitch.action!, to: settings.automaticSwitch.target, from: settings.automaticSwitch)
-        precondition(!controller.isAutomatic && settings.naturalSwitch.isEnabled && backend.writes == 0)
+        XCTAssertTrue(!controller.isAutomatic && settings.naturalSwitch.isEnabled && backend.writes == 0)
         defaults.synchronize()
         let child = Process()
-        child.executableURL = URL(fileURLWithPath: CommandLine.arguments[0])
-        child.arguments = ["--verify-saved", domain]
+        child.executableURL = Bundle(for: SettingsTests.self).bundleURL
+            .deletingLastPathComponent().appendingPathComponent("PreferencesPersistenceProbe")
+        child.arguments = [domain]
         try child.run()
         child.waitUntilExit()
-        precondition(child.terminationStatus == 0)
+        XCTAssertTrue(child.terminationStatus == 0)
         settings.naturalSwitch.state = .on
         app.sendAction(settings.naturalSwitch.action!, to: settings.naturalSwitch.target, from: settings.naturalSwitch)
-        precondition(controller.state.live == true && backend.writes == 1)
+        XCTAssertTrue(controller.state.live == true && backend.writes == 1)
         controller.update(connection: .connected)
-        precondition(controller.state.live == true && backend.writes == 1)
+        XCTAssertTrue(controller.state.live == true && backend.writes == 1)
 
         settings.window!.appearance = NSAppearance(named: .aqua)
         settings.window!.orderFront(nil)
-        precondition(settings.window!.toolbar!.items.map(\.label) == ["General", "Natural Scrolling", "Diagnostics", "About"])
-        precondition(!settings.window!.toolbar!.allowsUserCustomization)
+        XCTAssertTrue(settings.window!.toolbar!.items.map(\.label) == ["General", "Natural Scrolling", "Diagnostics", "About"])
+        XCTAssertTrue(!settings.window!.toolbar!.allowsUserCustomization)
         // Select every pane through its real toolbar target/action. Switching
         // panes must not change scrolling, and copy uses a private pasteboard.
         let writesBeforeNavigation = backend.writes
         for pane in SettingsWindow.Pane.allCases {
             let toolbarItem = settings.window!.toolbar!.items.first { $0.itemIdentifier == pane.identifier }!
             app.sendAction(toolbarItem.action!, to: toolbarItem.target, from: toolbarItem)
-            precondition(settings.selectedPane == pane)
-            precondition(settings.window!.toolbar!.selectedItemIdentifier == pane.identifier)
+            XCTAssertTrue(settings.selectedPane == pane)
+            XCTAssertTrue(settings.window!.toolbar!.selectedItemIdentifier == pane.identifier)
             try render(settings, name: pane.rawValue)
         }
-        precondition(backend.writes == writesBeforeNavigation)
+        XCTAssertTrue(backend.writes == writesBeforeNavigation)
         settings.selectPane(.diagnostics)
-        precondition(settings.diagnosticsText.string == report && !settings.diagnosticsText.isEditable)
+        XCTAssertTrue(settings.diagnosticsText.string == report && !settings.diagnosticsText.isEditable)
         app.sendAction(settings.refreshButton.action!, to: settings.refreshButton.target, from: settings.refreshButton)
-        precondition(refreshRequests == 1)
+        XCTAssertTrue(refreshRequests == 1)
         settings.update(from: controller, refreshing: true, statusInterval: polling.seconds)
-        precondition(!settings.refreshButton.isEnabled)
+        XCTAssertTrue(!settings.refreshButton.isEnabled)
         report = "Keychron M3\nBattery: 99%\nNatural Scrolling: On"
         settings.update(from: controller, statusInterval: polling.seconds)
-        precondition(settings.refreshButton.isEnabled && settings.diagnosticsText.string == report)
+        XCTAssertTrue(settings.refreshButton.isEnabled && settings.diagnosticsText.string == report)
         app.sendAction(settings.copyButton.action!, to: settings.copyButton.target, from: settings.copyButton)
-        precondition(clipboard.string(forType: .string) == report)
-        precondition(settings.copyStatus.stringValue == "Diagnostics copied.")
+        XCTAssertTrue(clipboard.string(forType: .string) == report)
+        XCTAssertTrue(settings.copyStatus.stringValue == "Diagnostics copied.")
         try render(settings, name: "diagnostics-copied")
         settings.window!.orderOut(nil)
 
@@ -140,12 +135,12 @@ private final class PreviewBackend: NaturalScrollingBackend {
         app.sendAction(settings.automaticSwitch.action!, to: settings.automaticSwitch.target, from: settings.automaticSwitch)
         controller.update(connection: .connected)
         settings.update(from: controller, statusInterval: polling.seconds)
-        precondition(controller.isAutomatic && !settings.naturalSwitch.isEnabled && settings.naturalSwitch.state == .off)
-        precondition(backend.writes == 2)
+        XCTAssertTrue(controller.isAutomatic && !settings.naturalSwitch.isEnabled && settings.naturalSwitch.state == .off)
+        XCTAssertTrue(backend.writes == 2)
         print("Settings panes, all slider intervals, timer delivery/replacement, clipboard, scrolling controls, and persistence passed.")
     }
 
-    private static func render(_ settings: SettingsWindow, name: String) throws {
+    private func render(_ settings: SettingsWindow, name: String) throws {
         // Render this test window's complete view tree, including its native
         // toolbar, rather than capturing the desktop or another application.
         let content = settings.window!.contentView!.superview!
@@ -161,6 +156,9 @@ private final class PreviewBackend: NaturalScrollingBackend {
         NSImage(cgImage: representation.cgImage!, size: content.bounds.size).draw(in: content.bounds)
         preview.unlockFocus()
         let png = NSBitmapImageRep(data: preview.tiffRepresentation!)!.representation(using: .png, properties: [:])!
-        try png.write(to: URL(fileURLWithPath: ".build/settings-\(name).png"))
+        let output = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+            .deletingLastPathComponent().appendingPathComponent(".build")
+        try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
+        try png.write(to: output.appendingPathComponent("settings-\(name).png"))
     }
 }

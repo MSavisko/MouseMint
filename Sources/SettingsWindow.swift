@@ -63,7 +63,7 @@ final class SettingsWindow: NSWindowController, NSToolbarDelegate {
         self.pasteboard = pasteboard
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 500, height: Pane.general.height),
             styleMask: [.titled, .closable], backing: .buffered, defer: false)
-        window.title = "Keychron Charge Settings"
+        window.title = "MouseMint Settings"
         window.isReleasedWhenClosed = false
         window.toolbarStyle = .preference
         super.init(window: window)
@@ -72,7 +72,7 @@ final class SettingsWindow: NSWindowController, NSToolbarDelegate {
         panes[.naturalScrolling] = scrollingPane()
         panes[.diagnostics] = diagnosticsPane()
         panes[.about] = aboutPane()
-        let toolbar = NSToolbar(identifier: "KeychronSettings")
+        let toolbar = NSToolbar(identifier: "MouseMintSettings")
         toolbar.delegate = self
         toolbar.displayMode = .iconAndLabel
         toolbar.allowsUserCustomization = false
@@ -234,11 +234,11 @@ final class SettingsWindow: NSWindowController, NSToolbarDelegate {
 
     private func aboutPane() -> NSView {
         let (view, stack) = makePane()
-        let title = NSTextField(labelWithString: "Keychron Charge")
+        let title = NSTextField(labelWithString: "MouseMint")
         title.font = .systemFont(ofSize: 20, weight: .semibold)
         add(title, to: stack)
         add(explanation(AppVersion.description), to: stack)
-        add(explanation("A small battery monitor for Keychron M3-A3. Supports USB cable, USB-C receiver, and Bluetooth."), to: stack)
+        add(explanation("Mouse battery and scrolling controls for macOS. Supports Keychron M3-A3 over USB cable, USB-C receiver, and Bluetooth."), to: stack)
         add(explanation("Choose how often to check status in General. Natural Scrolling automation is optional."), to: stack)
         add(explanation("Independent utility; not affiliated with Keychron."), to: stack)
         return view

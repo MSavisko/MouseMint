@@ -46,7 +46,7 @@ The Engine parser reads five little-endian words at offsets 6, 8, 10, 12, and 14
 
 ## Controls available in vendor tools or hardware
 
-The [official Engine guide](https://www.keychron.com/pages/learn-more-how-to-use-keychron-mouse-software) documents button remapping, keyboard shortcuts, keyboard/mouse macros, DPI, report rate, RGB customization, lift-off distance, movement correction, and button-response latency. These are available areas for future development, not features silently added to Keychron Charge.
+The [official Engine guide](https://www.keychron.com/pages/learn-more-how-to-use-keychron-mouse-software) documents button remapping, keyboard shortcuts, keyboard/mouse macros, DPI, report rate, RGB customization, lift-off distance, movement correction, and button-response latency. These are available areas for future development, not features silently added to MouseMint.
 
 | Area | Operations found | Exact-device caveat |
 | --- | --- | --- |

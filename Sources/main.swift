@@ -17,6 +17,9 @@ if CommandLine.arguments.contains("--scroll-status") {
         exit(1)
     }
 } else {
+    if !CommandLine.arguments.contains("--check-ui") {
+        PreferencesMigration.migrate()
+    }
     let app = NSApplication.shared
     app.setActivationPolicy(.accessory)
     let delegate = AppDelegate()
@@ -34,7 +37,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var refreshing = false
     private let naturalScrolling = AutomaticNaturalScrolling()
     private var settingsWindow: SettingsWindow?
-    private let worker = DispatchQueue(label: "local.keychroncharge.usb", qos: .utility)
+    private let worker = DispatchQueue(label: "io.github.msavisko.mousemint.usb", qos: .utility)
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -181,11 +184,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         label(naturalScrolling.menuTitle, symbol: naturalScrolling.errorMessage == nil ? "arrow.up.arrow.down" : "exclamationmark.triangle")
         menu.addItem(.separator())
         action("Settings…", #selector(openSettings), symbol: "gearshape", key: ",")
-        action("Quit Keychron Charge", #selector(quit), symbol: "power", key: "q")
+        action("Quit MouseMint", #selector(quit), symbol: "power", key: "q")
     }
 
     private var diagnosticsReport: String {
-        var text = "Keychron Charge — \(AppVersion.description)\n"
+        var text = "MouseMint — \(AppVersion.description)\n"
         text += "macOS: \(ProcessInfo.processInfo.operatingSystemVersionString)\n"
         text += "Status check interval: \(polling.seconds) seconds\n"
         if let reading {

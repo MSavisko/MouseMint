@@ -19,7 +19,7 @@ private final class PreviewBackend: NaturalScrollingBackend {
             precondition(StatusPollingPreferences(defaults: defaults).seconds == 10)
             return
         }
-        let domain = "local.keychroncharge.tests.\(UUID().uuidString)"
+        let domain = "io.github.msavisko.mousemint.tests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: domain)!
         defer { defaults.removePersistentDomain(forName: domain); defaults.synchronize() }
         let preferences = SavedScrollingPreferences(defaults: defaults)

@@ -1,6 +1,6 @@
 # Automatic Natural Scrolling
 
-Added 2026-10-23 for the user's requested rule: **off when the M3 is connected, on when it is disconnected**. This intentionally changes macOS's shared mouse/trackpad setting. It runs only while Keychron Charge is open.
+Added 2026-10-23 for the user's requested rule: **off when the M3 is connected, on when it is disconnected**. This intentionally changes macOS's shared mouse/trackpad setting. It runs only while MouseMint is open.
 
 ## Settings controls
 
@@ -46,7 +46,7 @@ When automation is enabled, the app uses the status interval chosen in General a
 ## Diagnostics
 
 ```sh
-"dist/Keychron Charge.app/Contents/MacOS/KeychronCharge" --scroll-status
+"dist/MouseMint.app/Contents/MacOS/MouseMint" --scroll-status
 ```
 
 Example when the mouse is disconnected:
@@ -71,3 +71,4 @@ Example when the mouse is disconnected:
 - The final app's `--check-ui --settings` check confirmed a live receiver reading at 100%, the Settings menu row and window, the saved automatic switch On, and the manual switch reflecting Off and disabled while automation is active.
 - The pane update was verified with all three native toolbar target/actions, selected-item highlighting, asynchronous-refresh button states, and exact copied text in a private pasteboard. Full native window renders were inspected for each pane and copy confirmation. A final `--check-ui --settings` run on version 1.4 (5) confirmed the status menu contains Settings and Quit as its only actions, all three pane labels are present, and Diagnostics contains the live cable-connected M3's 100%/fully charged report, versions, and scrolling values.
 - Version 1.5 adds General and the interval slider. Native control tests exercised all five values, invalid-value fallback, replacement of the previous timer, actual two-second run-loop delivery, absence of further callbacks from the replaced timer, and persistence in a separate process. The full General window was rendered and visually inspected. Read-only final-app checks with temporary command-line preference overrides confirmed real timer intervals of 2, 3, 5, 8, and 10 seconds, each with a successful live wired battery reading. These overrides did not change the user's saved interval or system scrolling.
+- Version 1.6 renames the app to MouseMint and uses the preference domain `io.github.msavisko.mousemint`. Its first normal launch imports the automatic-scrolling choice and valid status interval from `local.keychroncharge`, without replacing existing MouseMint choices. Diagnostic commands do not run the migration. Tests cover missing and invalid old settings, partial imports, existing choices, and repeated launches. The live upgrade preserved automatic switching enabled and a two-second interval; the renamed menu and Settings window correctly showed the disconnected mouse state. The About pane was rendered and visually checked.

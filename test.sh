@@ -10,5 +10,9 @@ xcrun swiftc -module-cache-path .build/module-cache \
   Tests/NaturalScrollingTests.swift -o .build/natural-scrolling-tests
 .build/natural-scrolling-tests
 xcrun swiftc -module-cache-path .build/module-cache \
+  Sources/NaturalScrolling.swift Sources/StatusPolling.swift Sources/PreferencesMigration.swift \
+  Tests/PreferencesMigrationTests.swift -o .build/preferences-migration-tests
+.build/preferences-migration-tests
+xcrun swiftc -module-cache-path .build/module-cache \
   Sources/NaturalScrolling.swift Sources/StatusPolling.swift Sources/SettingsWindow.swift Tests/SettingsTests.swift -o .build/settings-tests
 .build/settings-tests

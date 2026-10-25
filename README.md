@@ -1,12 +1,12 @@
-# Keychron Charge
+# MouseMint
 
-A tiny native macOS menu bar app for the **Keychron M3-A3**. It displays battery percentage and the active connection mode: **USB cable, USB-C 2.4 GHz receiver, or Bluetooth**.
+Mouse battery and scrolling controls for macOS. Supports the **Keychron M3-A3** over **USB cable, USB-C 2.4 GHz receiver, and Bluetooth**.
 
-**Keychron Engine is not required or used by this app.** Keychron Charge communicates directly with the mouse/receiver through macOS IOKit and reads Bluetooth battery information from macOS. It works without Engine installed or running.
+**Keychron Engine is not required or used by this app.** MouseMint communicates directly with the mouse/receiver through macOS IOKit and reads Bluetooth battery information from macOS. It works without Engine installed or running.
 
 ## Run
 
-Open **[dist/Keychron Charge.app](dist/Keychron%20Charge.app)** in Finder. Click the menu bar icon for connection mode, battery percentage, charging status, and the current Natural Scrolling state. Open **Settings…** for controls and utilities.
+Build the app using the commands below, then open **MouseMint.app** in the `dist` folder. Click the menu bar icon for connection mode, battery percentage, charging status, and the current Natural Scrolling state. Open **Settings…** for controls and utilities.
 
 The dropdown contains status information, Settings, and Quit, with native monochrome macOS symbols and the matching connection-mode icon. Utility actions and detailed errors live in Settings.
 
@@ -14,12 +14,16 @@ The icon changes with the connection: cable connector, USB receiver, or Bluetoot
 
 When the mouse is disconnected or its receiver reports no connected mouse, the menu bar shows a circled X and **Not connected**. The menu suggests waking the mouse or checking its connection. Receiver timeouts, USB access failures, and read errors are labelled separately as **Read error**.
 
-The included build is for Apple Silicon and macOS 13 or later. It is locally ad-hoc signed, not notarized for distribution. It does not add itself to login items, use a network service, install a driver, or change mouse configuration.
+Building requires Apple Silicon, macOS 13 or later, and Xcode Command Line Tools (`xcode-select --install`). The app is locally ad-hoc signed, not notarized for distribution. It does not add itself to login items, use a network service, install a driver, or change mouse configuration.
 
 ```sh
+git clone https://github.com/MSavisko/MouseMint.git
+cd MouseMint
 ./build.sh
-open "dist/Keychron Charge.app"
+open "dist/MouseMint.app"
 ```
+
+Upgrading from Keychron Charge: MouseMint carries over your automatic scrolling and status-check interval settings on its first normal launch. Quit the old app before opening MouseMint.
 
 ## Automatic Natural Scrolling
 
@@ -53,10 +57,10 @@ Scope: this M3-A3, its D031 USB-C receiver, and one mouse at a time. USB-A D030 
 
 ```sh
 ./test.sh
-"dist/Keychron Charge.app/Contents/MacOS/KeychronCharge" --read-json
-"dist/Keychron Charge.app/Contents/MacOS/KeychronCharge" --check-ui
-"dist/Keychron Charge.app/Contents/MacOS/KeychronCharge" --check-ui --settings
-"dist/Keychron Charge.app/Contents/MacOS/KeychronCharge" --scroll-status
+"dist/MouseMint.app/Contents/MacOS/MouseMint" --read-json
+"dist/MouseMint.app/Contents/MacOS/MouseMint" --check-ui
+"dist/MouseMint.app/Contents/MacOS/MouseMint" --check-ui --settings
+"dist/MouseMint.app/Contents/MacOS/MouseMint" --scroll-status
 ```
 
 `--read-json` returns one reading. `--check-ui` runs the native app lifecycle, reads the mouse, prints the actual status button's title, icon description, and menu contents, then exits. Add `--settings` to also inspect the Settings toolbar panes, scrolling switches, diagnostics actions, and current report. Run USB checks from a normal terminal; a restricted agent terminal can enumerate devices but cannot open their HID interfaces.
@@ -67,7 +71,7 @@ The tests cover captured reports, malformed and unrelated responses, valid 0%, c
 
 ## Sources
 
-Keychron Engine 1.0.10 for macOS was inspected only as a protocol research reference. It was neither installed nor executed during the investigation, and Keychron Charge does not bundle, launch, or depend on it. See the [protocol investigation](docs/usb-protocol.md#official-software-evidence).
+Keychron Engine 1.0.10 for macOS was inspected only as a protocol research reference. It was neither installed nor executed during the investigation, and MouseMint does not bundle, launch, or depend on it. See the [protocol investigation](docs/usb-protocol.md#official-software-evidence).
 
 See the [M3-A3 capability inventory](docs/m3-a3-capabilities.md) for vendor-documented controls, read-only configuration evidence, firmware/transport limits, and the status-interval research. No vendor minimum for battery-status queries was found; 2 seconds is an app choice, not a Keychron recommendation.
 

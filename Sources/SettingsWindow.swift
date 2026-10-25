@@ -26,7 +26,7 @@ final class SettingsWindow: NSWindowController, NSToolbarDelegate {
             case .general: return 250
             case .naturalScrolling: return 350
             case .diagnostics: return 400
-            case .about: return 250
+            case .about: return 280
             }
         }
     }
@@ -238,6 +238,7 @@ final class SettingsWindow: NSWindowController, NSToolbarDelegate {
         title.font = .systemFont(ofSize: 20, weight: .semibold)
         add(title, to: stack)
         add(explanation(AppVersion.description), to: stack)
+        add(explanation("© 2026 Maksym Savisko · MIT License"), to: stack)
         add(explanation("Mouse battery and scrolling controls for macOS. Supports Keychron M3-A3 over USB cable, USB-C receiver, and Bluetooth."), to: stack)
         add(explanation("Choose how often to check status in General. Natural Scrolling automation is optional."), to: stack)
         add(explanation("Independent utility; not affiliated with Keychron."), to: stack)

@@ -82,3 +82,7 @@ See the [M3-A3 capability inventory](docs/m3-a3-capabilities.md) for vendor-docu
 Independent utility; not affiliated with Keychron.
 
 Future ideas and implementation milestones are tracked in [PLAN.md](PLAN.md).
+
+## License
+
+[MIT](LICENSE) © 2026 Maksym Savisko. See [third-party notices](THIRD_PARTY_NOTICES.md) for research credits and their license.

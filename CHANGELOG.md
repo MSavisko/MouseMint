@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.2](https://github.com/MSavisko/MouseMint/compare/v1.7.1...v1.7.2) (2026-10-27)
+
+
+### Fixes
+
+* keep installer instructions visible in Finder ([27d45bf](https://github.com/MSavisko/MouseMint/commit/27d45bf3406e586c0f70cd7de39fcaf0f0da81e9))
+
 ## [1.7.1](https://github.com/MSavisko/MouseMint/compare/v1.7.0...v1.7.1) (2026-10-27)
 
 

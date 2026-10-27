@@ -1,0 +1,4 @@
+# GitHub's standard, free public-repository runner. Added before actionlint's
+# built-in label list: https://github.com/actions/runner-images
+self-hosted-runner:
+  labels: [xcode-27]

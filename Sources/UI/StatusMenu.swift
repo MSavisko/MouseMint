@@ -1,13 +1,17 @@
 import AppKit
 
-final class StatusMenu: NSObject {
+final class StatusMenu: NSObject, NSMenuItemValidation {
     let menu = NSMenu()
     let button: NSButton
     private let settings: () -> Void
     private let quit: () -> Void
+    private let checkForUpdates: (() -> Void)?
+    private let canCheckForUpdates: () -> Bool
     private let formatDate: (Date) -> String
     init(button: NSButton, settings: @escaping () -> Void, quit: @escaping () -> Void,
-         formatDate: @escaping (Date) -> String = { $0.formatted(date: .omitted, time: .standard) }) {
+         formatDate: @escaping (Date) -> String = { $0.formatted(date: .omitted, time: .standard) },
+         checkForUpdates: (() -> Void)? = nil, canCheckForUpdates: @escaping () -> Bool = { false }) {
+        self.checkForUpdates = checkForUpdates; self.canCheckForUpdates = canCheckForUpdates
         self.button = button; self.settings = settings; self.quit = quit; self.formatDate = formatDate
     }
     private func menuImage(_ symbol: String, description: String) -> NSImage? {
@@ -82,9 +86,14 @@ final class StatusMenu: NSObject {
         label(state.scrolling.title, symbol: state.scrolling.error == nil ? "arrow.up.arrow.down" : "exclamationmark.triangle")
         menu.addItem(.separator())
         action("Settings…", #selector(didChooseSettings), symbol: "gearshape", key: ",")
+        if checkForUpdates != nil { action("Check for Updates…", #selector(didChooseUpdates), symbol: "arrow.triangle.2.circlepath") }
         action("Quit MouseMint", #selector(didChooseQuit), symbol: "power", key: "q")
     }
 
+    func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        menuItem.action == #selector(didChooseUpdates) ? canCheckForUpdates() : true
+    }
+    @objc private func didChooseUpdates() { if canCheckForUpdates() { checkForUpdates?() } }
     @objc private func didChooseSettings() { settings() }
     @objc private func didChooseQuit() { quit() }
 }

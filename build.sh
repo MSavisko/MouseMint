@@ -1,7 +1,7 @@
 #!/bin/zsh
 set -euo pipefail
 cd "${0:A:h}"
-mise exec -- tuist generate --no-open
+./generate.sh
 xcodebuild -workspace MouseMint.xcworkspace -scheme MouseMint -configuration Release \
   -destination 'platform=macOS,arch=arm64' -derivedDataPath .build/DerivedData build
 mkdir -p dist

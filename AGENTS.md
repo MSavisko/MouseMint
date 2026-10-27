@@ -13,7 +13,7 @@ mise run test
 mise run build
 ```
 
-`Project.swift` owns the Xcode targets, source lists, resources, and settings. Do not hand-edit or commit generated `.xcodeproj`, `.xcworkspace`, `Derived`, `.build`, or `dist` output. Keep the app's macOS 13 deployment target and Swift 5 language mode unless the task changes them. Pin new development tools through mise; add Swift packages only for a concrete need, with exact versions and their resolver lockfile.
+`Project.swift` owns the Xcode targets, source lists, resources, and settings. Do not hand-edit or commit generated `.xcodeproj`, `.xcworkspace`, `Derived`, `.build`, or `dist` output. Keep the app's macOS 13 deployment target and Swift 5 language mode unless the task changes them. Release automation and signing requirements are in [docs/releases.md](docs/releases.md). Never commit or log private signing keys or notarization credentials. Pin new development tools through mise; add Swift packages only for a concrete need, with exact versions and their resolver lockfile.
 
 ## Code rules
 

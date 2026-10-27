@@ -26,8 +26,8 @@ jobs:
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
-      # GITHUB_TOKEN-created PRs do not trigger pull_request workflows.
-      # An explicit dispatch does, so no long-lived PAT is needed.
+      # Bot-created pull_request runs require a writer's approval.
+      # Dispatch CI immediately too, without a long-lived PAT.
       - name: Check the generated release PR
         if: steps.release.outputs.prs_created == 'true'
         env:

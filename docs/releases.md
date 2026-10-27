@@ -11,7 +11,9 @@ The pipeline was merged in [PR #1](https://github.com/MSavisko/MouseMint/pull/1)
 3. The publisher verifies that the exact release commit belongs to `main`, rebuilds and tests it, signs the app and Sparkle's nested helpers with Developer ID, submits the app to Apple, and staples the accepted ticket.
 4. It creates the DMG and ZIP from that stapled app, signs/notarizes/staples the DMG, signs the Sparkle update feed, uploads the files and checksums, then publishes the release. A failure leaves the release draft. Retrying is a manual workflow dispatch with that draft's tag and full commit SHA; published releases cannot be overwritten by this workflow.
 
-Release Please-created PRs do not trigger normal `pull_request` workflows. The release workflow explicitly dispatches CI on their branch, using the short-lived `GITHUB_TOKEN`; no personal access token is required. Repository **Settings → Actions → General → Allow GitHub Actions to create and approve pull requests** must be enabled for PR creation. It is now enabled for MouseMint; default workflow token permissions remain read-only. The workflows do not approve or merge PRs.
+The release workflow explicitly dispatches CI on the generated PR's branch, using the short-lived `GITHUB_TOKEN`; no personal access token is required. GitHub also creates a separate `pull_request` run that needs a repository writer's approval. Its **Approve workflows to run** banner can remain even after the dispatched CI passes. During release review, approve that run and wait for its result before merging; check that CI tested the PR's current commit. See [GitHub's token and approval rules](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow).
+
+Repository **Settings → Actions → General → Allow GitHub Actions to create and approve pull requests** must be enabled for PR creation. It is enabled for MouseMint; default workflow token permissions remain read-only. The workflows do not approve or merge PRs.
 
 The generated release PR is the review point. Routine releases need no manual packaging or release-note copying after the one-time credentials setup.
 
@@ -48,7 +50,7 @@ If creating it on Apple's website, select **Developer ID Application** (the bott
 
 The CSR contains public information; the matching private key is created on your Mac. A `.cer` alone cannot sign the app. See [Apple's CSR instructions](https://developer.apple.com/help/account/certificates/create-a-certificate-signing-request/).
 
-Create an App Store Connect **team API key** that can use notarization, download its `.p8`, and note its key ID and issuer ID. Keep a secure backup; Apple allows downloading the private key only once. Never paste private keys or certificate passwords into PRs, issues or chat.
+Create an App Store Connect **team API key** with the **Developer** access role. A descriptive name such as `MouseMint Notarization` is enough. Download its `.p8` and note its key ID and issuer ID. Keep a secure backup; Apple allows downloading the private key only once. Never paste private keys or certificate passwords into PRs, issues or chat.
 
 Configure the following encrypted secrets under **Repository Settings → Secrets and variables → Actions**:
 
@@ -96,9 +98,11 @@ The final read-only native inspection passed in receiver mode (M3-A3, D031, firm
 
 [GitHub Actions run 40562095033](https://github.com/MSavisko/MouseMint/actions/runs/40562095033) passed locked installation, generation, resolver checks, release checks, real metadata-cache checks, all 61 native tests, release build, DMG creation/verification and preview upload. The preview is an ad-hoc development installer, not a notarized release.
 
-[Release-management run 40564771368](https://github.com/MSavisko/MouseMint/actions/runs/40564771368) completed successfully after PR #1 merged. It actually created PR #2 with `version.txt`, the release manifest and changelog changed to `1.7.0`, and explicitly dispatched CI on the bot branch ([run 40564823513](https://github.com/MSavisko/MouseMint/actions/runs/40564823513)). This verifies release-note collection and the no-PAT dispatch path. Tag `v1.6.1` records the old development baseline at `3a19307` so generated comparisons have a real starting point; it is not a notarized app release.
+[Release-management run 40564771368](https://github.com/MSavisko/MouseMint/actions/runs/40564771368) completed successfully after PR #1 merged. It actually created PR #2 with `version.txt`, the release manifest and changelog changed to `1.7.0`. A later update dispatched [CI run 40565205815](https://github.com/MSavisko/MouseMint/actions/runs/40565205815), which passed on release-PR commit `eef8f43d22f31430aa1c4b171154e3cb72515a51`. The duplicate PR-triggered run requires approval. This verifies release-note collection and the no-PAT dispatch path, including its approval limitation. Tag `v1.6.1` records the old development baseline at `3a19307` so generated comparisons have a real starting point; it is not a notarized app release.
 
-[CI run 40563954089](https://github.com/MSavisko/MouseMint/actions/runs/40563954089) also passed the eight Python tests, 61 native tests, release build and DMG verification/upload. A valid Developer ID Application identity is now installed on the Mac. Its isolated local signing check is waiting for macOS Keychain authorization; hardened runtime has not yet been verified with that identity.
+[CI run 40563954089](https://github.com/MSavisko/MouseMint/actions/runs/40563954089) also passed the eight Python tests, 61 native tests, release build and DMG verification/upload.
+
+After Keychain authorization, an isolated copy of MouseMint and all nested Sparkle helpers were signed with `Developer ID Application: Maksym Savisko (4KQC9K68AM)`. Deep strict signature verification, hardened runtime and the read-only native UI check passed. Gatekeeper rejected the copy with `source=Unnotarized Developer ID`, as expected before submission to Apple. Local evidence is saved in `.build/releases-developer-id-signing.json` and `.build/releases-developer-id-ui.log`; these generated files are not committed. No private key was exported by this check.
 
 Apple notarization, final release publication and an actual update installation remain unverified. No notarized release has been published. These results must be recorded before calling the release setup complete.
 

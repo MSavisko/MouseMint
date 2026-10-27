@@ -2,7 +2,7 @@
 
 MouseMint uses GitHub Actions, GitHub Releases, and Sparkle 2.10.1. Standard GitHub-hosted runners are free for this public repository. The `xcode-27` runner provides the project's exact Xcode 27.1 build. No paid larger runner is used. CI preview artifacts expire after three days to limit storage.
 
-The pipeline was merged in [PR #1](https://github.com/MSavisko/MouseMint/pull/1). It generated [release PR #2 for 1.7.0](https://github.com/MSavisko/MouseMint/pull/2), including the version bump and release notes. Notarized releases are publicly available, and Sparkle successfully updated the installed app from 1.7.0 to [1.7.1](https://github.com/MSavisko/MouseMint/releases/tag/v1.7.1).
+The pipeline was merged in [PR #1](https://github.com/MSavisko/MouseMint/pull/1). Notarized releases are publicly available, and Sparkle successfully updated the installed app from 1.7.0 to 1.7.1. [MouseMint 1.7.2](https://github.com/MSavisko/MouseMint/releases/tag/v1.7.2), including the adjusted installer layout, is now installed and running in `/Applications/MouseMint.app`.
 
 ## Normal release flow
 
@@ -114,7 +114,7 @@ After Keychain authorization, an isolated copy of MouseMint and all nested Spark
 
 [Publishing run 40569023383](https://github.com/MSavisko/MouseMint/actions/runs/40569023383) created and published 1.7.0 from exact commit `30076d3ae31192e50ac2f540fbe0f834a35d8184`. Apple accepted app submission `753511c6-2542-43f1-9726-3deb27e574db` and DMG submission `81ef7508-5abd-4ff9-81e5-0f48271e06dd`. Both tickets were stapled and validated before publication. All 61 native and eleven Python tests passed in the publisher.
 
-All four public release files were downloaded without authentication and passed their published SHA-256 checksums. The downloaded app and DMG both passed local stapler validation and Gatekeeper with `source=Notarized Developer ID`. The downloaded ZIP's Sparkle signature passed cryptographic verification with the existing Keychain signing account, and its feed passed exact version, length and URL checks. These files are retained under `.build/published-1.7.0` for local inspection.
+All four public release files were downloaded without authentication and matched GitHub's published SHA-256 asset digests, including the checksum manifest itself. The DMG, ZIP and feed also matched `SHA256SUMS.txt`. The downloaded app and DMG both passed local stapler validation and Gatekeeper with `source=Notarized Developer ID`. The downloaded ZIP's Sparkle signature passed cryptographic verification with the existing Keychain signing account, and its feed passed exact version, length and URL checks. These files are retained under `.build/published-1.7.0` for local inspection.
 
 The first release exposed a sequencing error: Release Please opened a redundant 1.8.0 proposal containing 1.7.0's changes while its draft was being published. That PR was closed. Release and proposal creation are now separate passes, with a pending-draft check. [Release PR #4](https://github.com/MSavisko/MouseMint/pull/4) then correctly proposed only the new fix as 1.7.1. [Run 40571308004](https://github.com/MSavisko/MouseMint/actions/runs/40571308004) published it from `3321ad5950bda44bd6650626584c49ecb8565693`, skipped proposal generation during publication and left no premature release PR. Apple accepted app submission `efe6d575-219c-4af5-a922-48b0151905c9` and DMG submission `43cad89c-e017-44df-949f-1e7284034fad`.
 
@@ -122,7 +122,11 @@ With explicit permission to launch the normal app, the downloaded 1.7.0 was inst
 
 A separate native Sparkle client, using the pinned framework and a disposable preferences domain, found the public update without starting MouseMint's device polling or scrolling automation. Its result is retained in `.build/sparkle-live-probe/result.log`.
 
-The full published DMG window was visually inspected in Finder. This exposed a clipped secondary instruction when the owner's path/status bars remained visible. The background now uses one instruction placed higher in the window. An actual preview DMG was reopened with those bars still visible and its complete instruction, app, arrow and Applications shortcut were visually checked. The adjusted layout still needs publication in the next patch release.
+The full published DMG window was visually inspected in Finder. This exposed a clipped secondary instruction when the owner's path/status bars remained visible. The background now uses one instruction placed higher in the window. An actual preview DMG was reopened with those bars still visible and its complete instruction, app, arrow and Applications shortcut were visually checked.
+
+[Release PR #5](https://github.com/MSavisko/MouseMint/pull/5) collected that layout fix into 1.7.2. Its full CI passed before merge. [Publishing run 40574119689](https://github.com/MSavisko/MouseMint/actions/runs/40574119689) then passed all 61 native tests, eleven Python tests, the release build and both notarizations from exact source commit `8d2a4ebc4851dc5b1acade7c610996f93fbc9d52`. Accepted submission IDs are `59999b8f-7cd7-4b25-9abe-2db25dcec07f` for the app and `4367fa2d-d744-4c6e-8fc6-1dba2a22a9f1` for the DMG. Credential cleanup passed, and no premature release PR was created.
+
+All four 1.7.2 assets were downloaded anonymously and matched their GitHub SHA-256 digests; the archive/feed checksums also passed. The app and DMG passed local stapler/Gatekeeper checks. A native CryptoKit check independently verified the ZIP's Ed25519 signature using only the public key shipped in the app. The public source archive contains version 1.7.2, the project sources, MIT license and author credit. The final public DMG was opened in Finder and its complete layout was visually inspected with the path/status bars visible. MouseMint 1.7.2 (101.7.2) was installed from that DMG and launched normally. Local results and notarization receipts are retained in `.build/published-1.7.2`; generated evidence stays out of Git.
 
 ## Sources
 

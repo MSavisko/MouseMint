@@ -15,6 +15,8 @@ This structure was implemented on 2026-10-27 through the approved test-first ref
 | macOS adapters and preferences | HID access, accessory battery service, system scrolling, saved settings and migration | Deciding what the UI should show |
 | UI | Menu bar, Settings panes, formatting and callbacks for user intent | Polling, device commands and direct preference writes |
 
+`UpdateController` owns updater startup and user checks behind a small backend contract. `SparkleUpdateBackend` is the platform adapter. Diagnostic startup never constructs Sparkle. Menu and About controls receive callbacks and current availability. Signing, notarization and packaging scripts stay under `Tools/`; their workflow is documented in [releases.md](releases.md).
+
 Startup is the place that knows the concrete implementations. A controller receives state and callbacks; the coordinator receives a reader, scheduler and system-setting interfaces. Device drivers use transport interfaces and return plain values. Shared models do not import AppKit or IOKit. These are source-level rules today, not boundaries enforced by separate compiled modules.
 
 `ScrollingPolicy` returns a desired setting without performing effects. `AutomaticNaturalScrolling` in App coordinates saved choices and the `NaturalScrollingBackend`; `SystemNaturalScrolling` in Platform owns native calls. Tests cover the pure decision and application effects separately.

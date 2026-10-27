@@ -5,3 +5,5 @@
 - [x] Write down how the app could support other devices.
 - [ ] Add profiles to save and switch between settings for gaming, work, and other uses.
 - [x] Reorganize the code so support for more devices is easy to add.
+
+- [ ] Automate signed, notarized GitHub releases with a drag-and-drop installer and Sparkle updates.

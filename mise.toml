@@ -2,6 +2,8 @@ min_version = "2026.6.10"
 
 [tools]
 "aqua:tuist/tuist" = "4.211.0"
+"aqua:rhysd/actionlint" = "1.7.12"
+python = "3.13.7"
 
 [settings]
 experimental = true
@@ -9,7 +11,7 @@ lockfile = true
 
 [tasks.generate]
 description = "Generate the Xcode workspace"
-run = "tuist generate --no-open"
+run = "./generate.sh"
 
 [tasks.build]
 description = "Build the release app in dist/MouseMint.app"
@@ -18,3 +20,7 @@ run = "./build.sh"
 [tasks.test]
 description = "Run all native tests"
 run = "./test.sh"
+
+[tasks.release-check]
+description = "Check release scripts and GitHub workflows"
+run = ["python3 -m unittest discover -s Tests/Release -v", "actionlint -shellcheck= -pyflakes="]

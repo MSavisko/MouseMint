@@ -8,13 +8,15 @@ Mouse battery and scrolling controls for macOS. Supports the **Keychron M3-A3** 
 
 Build the app using the commands below, then open **MouseMint.app** in the `dist` folder. Click the menu bar icon for connection mode, battery percentage, charging status, and the current Natural Scrolling state. Open **Settings…** for controls and utilities.
 
-The dropdown contains status information, Settings, and Quit, with native monochrome macOS symbols and the matching connection-mode icon. Utility actions and detailed errors live in Settings.
+The dropdown contains status information, Settings, Check for Updates, and Quit, with native monochrome macOS symbols and the matching connection-mode icon. Utility actions and detailed errors live in Settings.
 
 The icon changes with the connection: cable connector, USB receiver, or Bluetooth rune. The app checks at your chosen interval (five seconds by default), after waking from sleep, and when opening the menu. It gives a cable connection priority, then a connected Bluetooth mouse, then a responding wireless receiver. An idle receiver alone does not count as an active mouse connection. No USB port is hard-coded.
 
 When the mouse is disconnected or its receiver reports no connected mouse, the menu bar shows a circled X and **Not connected**. The menu suggests waking the mouse or checking its connection. Receiver timeouts, USB access failures, and read errors are labelled separately as **Read error**.
 
-Building requires an Apple Silicon Mac, **Xcode 27.1**, and **mise 2026.6.10 or later**. Select Xcode 27.1 as your active developer tools; Command Line Tools alone are not enough. The app runs on macOS 13 or later. It is locally ad-hoc signed, not notarized for distribution.
+For release automation, signing setup and downloads, see [Releases](docs/releases.md).
+
+Building requires an Apple Silicon Mac, **Xcode 27.1**, and **mise 2026.6.10 or later**. Select Xcode 27.1 as your active developer tools; Command Line Tools alone are not enough. The app runs on macOS 13 or later. Local development builds are ad-hoc signed. The release pipeline requires Developer ID signing and Apple notarization before publishing.
 
 ```sh
 git clone https://github.com/MSavisko/MouseMint.git
@@ -26,11 +28,11 @@ mise run build
 open "dist/MouseMint.app"
 ```
 
-Tuist **4.211.0** is pinned in `mise.toml`, with its download and checksum recorded in `mise.lock`. Swift and the macOS SDK come from the Xcode version checked by `Tuist.swift`. There are no third-party Swift package dependencies.
+Tuist **4.211.0** is pinned in `mise.toml`, with its download and checksum recorded in `mise.lock`. Swift and the macOS SDK come from the Xcode version checked by `Tuist.swift`. Sparkle **2.10.1** is pinned in `Tuist/Package.swift` and `Tuist/Package.resolved` for software updates.
 
 To work in Xcode, run `mise run generate` and open `MouseMint.xcworkspace`. Edit `Project.swift` for project changes; the workspace and project are generated and stay out of Git. `build.sh` and `test.sh` remain shortcuts to the same pinned build tools.
 
-The app does not add itself to login items, use a network service, install a driver, or change mouse configuration.
+The app does not add itself to login items, install a driver, or change mouse configuration. Sparkle checks the public GitHub release feed for software updates. Mouse readings stay on your Mac.
 
 Upgrading from Keychron Charge: MouseMint carries over your automatic scrolling and status-check interval settings on its first normal launch. Quit the old app before opening MouseMint.
 
@@ -38,7 +40,7 @@ Upgrading from Keychron Charge: MouseMint carries over your automatic scrolling 
 
 Settings uses the native macOS preferences toolbar to switch between **General**, **Natural Scrolling**, **Diagnostics**, and **About** panes. The toolbar is not customizable and always identifies the selected pane, following [Apple's settings-window guidance](https://developer.apple.com/design/human-interface-guidelines/settings). **General** has a slider for **2, 3, 5, 8, or 10 seconds** between periodic status checks. Changes replace the active timer and are saved across launches; the default remains 5 seconds. This controls battery/connection checks and scrolling automation, not the mouse's hardware movement report rate. Faster Bluetooth checks cannot force fresher macOS battery data.
 
-Diagnostics contains a selectable, read-only report, **Refresh Now**, and **Copy Diagnostics** with confirmation. The report updates as the app polls and includes connection, battery, raw mouse report (or Bluetooth source), app/macOS versions, status interval, scrolling values, and errors. About contains the app version and short description.
+Diagnostics contains a selectable, read-only report, **Refresh Now**, and **Copy Diagnostics** with confirmation. The report updates as the app polls and includes connection, battery, raw mouse report (or Bluetooth source), app/macOS versions, status interval, scrolling values, and errors. About contains the app version, short description, and Check for Updates.
 
 While the app is running, it turns macOS **Natural Scrolling off when the M3 is connected** and **on when it disconnects**. This is the shared macOS setting, so it also changes trackpad scrolling. Cable, receiver, and Bluetooth connections all use the same rule. The menu shows the current setting.
 

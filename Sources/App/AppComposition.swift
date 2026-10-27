@@ -20,7 +20,8 @@ enum AppComposition {
         let polling = PollingSchedulerAdapter(preferences: StatusPollingPreferences())
         let coordinator = AppCoordinator(reader: reader(), executor: SerialRefreshExecutor(),
             scheduler: polling, scrolling: AutomaticNaturalScrolling(backend: SystemNaturalScrolling(), preferences: SavedScrollingPreferences()), readOnly: inspection)
-        let delegate = NativeAppDelegate(coordinator: coordinator, polling: polling, inspection: inspection, showSettings: settings)
+        let delegate = NativeAppDelegate(coordinator: coordinator, polling: polling, inspection: inspection, showSettings: settings,
+            updates: UpdateController(readOnly: inspection, makeBackend: { SparkleUpdateBackend() }))
         app.delegate = delegate
         withExtendedLifetime(delegate) { app.run() }
         return 0

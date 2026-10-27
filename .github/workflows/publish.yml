@@ -1,0 +1,83 @@
+name: Publish notarized release
+on:
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
+      commit:
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing draft release tag (vMAJOR.MINOR.PATCH)
+        required: true
+        type: string
+      commit:
+        description: Full release commit SHA (must belong to main)
+        required: true
+        type: string
+permissions:
+  contents: write
+concurrency:
+  group: publish-mousemint
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: xcode-27
+    timeout-minutes: 60
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
+      MISE_YES: '1'
+      RELEASE_TAG: ${{ inputs.tag }}
+      RELEASE_COMMIT: ${{ inputs.commit }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.commit }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify trusted release source
+        run: |
+          [[ "$RELEASE_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$RELEASE_COMMIT"
+          git merge-base --is-ancestor HEAD origin/main
+          test "$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft)" = true
+          test "$(gh api "repos/$GH_REPO/releases/tags/$RELEASE_TAG" --jq .target_commitish)" = "$RELEASE_COMMIT"
+      - uses: jdx/mise-action@6be3c7ed4c21d4f76b208d351d95aac273ebb76d # v5.2.4
+        with:
+          version: 2026.6.10
+          install: false
+      - run: mise install --locked
+      - run: mise exec -- python3 Tools/release.py version --tag "$RELEASE_TAG"
+      - run: mise run generate
+      - run: git diff --exit-code -- mise.lock Tuist/Package.resolved
+      - run: mise run release-check
+      - run: mise run test
+      - run: mise run build
+      - name: Import signing credentials into a temporary keychain
+        id: signing
+        env:
+          APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_NOTARY_KEY: ${{ secrets.APPLE_NOTARY_KEY }}
+          APPLE_NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
+          APPLE_NOTARY_ISSUER_ID: ${{ secrets.APPLE_NOTARY_ISSUER_ID }}
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: mise exec -- python3 Tools/import-signing.py
+      - name: Sign, notarize, package and sign the update feed
+        env:
+          SIGNING_IDENTITY: ${{ steps.signing.outputs.identity }}
+          APPLE_NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
+          APPLE_NOTARY_ISSUER_ID: ${{ secrets.APPLE_NOTARY_ISSUER_ID }}
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: mise exec -- bash Tools/publish.sh
+      - name: Remove temporary credentials
+        if: always()
+        run: |
+          security delete-keychain "$RUNNER_TEMP/mousemint-release.keychain-db" 2>/dev/null || true
+          rm -f "$RUNNER_TEMP/mousemint-certificate.p12" "$RUNNER_TEMP/mousemint-notary.p8"

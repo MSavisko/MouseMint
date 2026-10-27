@@ -6,8 +6,11 @@
     <key>CFBundleName</key><string>MouseMint</string>
     <key>CFBundleDisplayName</key><string>MouseMint</string>
     <key>CFBundlePackageType</key><string>APPL</string>
-    <key>CFBundleShortVersionString</key><string>1.6.1</string>
-    <key>CFBundleVersion</key><string>8</string>
+    <key>CFBundleShortVersionString</key><string>$(MARKETING_VERSION)</string>
+    <key>CFBundleVersion</key><string>$(CURRENT_PROJECT_VERSION)</string>
+    <key>SUFeedURL</key><string>https://github.com/MSavisko/MouseMint/releases/latest/download/appcast.xml</string>
+    <key>SUPublicEDKey</key><string>$(SPARKLE_PUBLIC_KEY)</string>
+    <key>SUEnableAutomaticChecks</key><true/>
     <key>LSMinimumSystemVersion</key><string>13.0</string>
     <key>LSApplicationCategoryType</key><string>public.app-category.utilities</string>
     <key>LSUIElement</key><true/>

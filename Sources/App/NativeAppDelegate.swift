@@ -4,20 +4,23 @@ final class NativeAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let coordinator: AppCoordinator
     private let polling: PollingSchedulerAdapter
     private let inspection: Bool
+    private let updates: UpdateController
     private let showSettings: Bool
     private var item: NSStatusItem!
     private var statusMenu: StatusMenu!
     private var settingsWindow: SettingsWindow?
 
-    init(coordinator: AppCoordinator, polling: PollingSchedulerAdapter, inspection: Bool, showSettings: Bool) {
+    init(coordinator: AppCoordinator, polling: PollingSchedulerAdapter, inspection: Bool, showSettings: Bool, updates: UpdateController) {
         self.coordinator = coordinator; self.polling = polling
+        self.updates = updates
         self.inspection = inspection; self.showSettings = showSettings
     }
     func applicationDidFinishLaunching(_ notification: Notification) {
         item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         item.button?.font = .monospacedDigitSystemFont(ofSize: 12, weight: .medium)
         item.button?.imagePosition = .imageLeading
-        statusMenu = StatusMenu(button: item.button!, settings: { [weak self] in self?.openSettings() }, quit: { NSApp.terminate(nil) })
+        statusMenu = StatusMenu(button: item.button!, settings: { [weak self] in self?.openSettings() }, quit: { NSApp.terminate(nil) },
+            checkForUpdates: updates.check, canCheckForUpdates: { [updates] in updates.canCheck })
         item.menu = statusMenu.menu
         statusMenu.menu.delegate = self
         coordinator.onChange = { [weak self] state in
@@ -25,6 +28,7 @@ final class NativeAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             self.updateUI()
             if self.inspection, !state.refreshing, state.reading != nil || state.failure != nil { self.finishInspection() }
         }
+        updates.start()
         updateUI()
         coordinator.start()
         if showSettings { openSettings() }
@@ -46,7 +50,8 @@ final class NativeAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if settingsWindow == nil {
             settingsWindow = SettingsWindow(automaticChanged: coordinator.setAutomatic,
                 naturalChanged: coordinator.setNaturalScrolling, intervalChanged: coordinator.setInterval,
-                refreshRequested: coordinator.refresh, diagnostics: { [weak self] in self?.diagnostics ?? "No diagnostic reading available." })
+                refreshRequested: coordinator.refresh, diagnostics: { [weak self] in self?.diagnostics ?? "No diagnostic reading available." },
+                checkForUpdates: updates.check, canCheckForUpdates: { [updates] in updates.canCheck })
         }
         coordinator.inspectScrolling()
         updateUI()

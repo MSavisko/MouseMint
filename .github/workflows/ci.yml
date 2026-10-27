@@ -1,0 +1,56 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  workflow_call:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  check:
+    runs-on: xcode-27
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
+      MISE_YES: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@6be3c7ed4c21d4f76b208d351d95aac273ebb76d # v5.2.4
+        with:
+          version: 2026.6.10
+          install: false
+      - run: mise install --locked
+      - run: mise run generate
+      - name: Diagnose manifest generation failure
+        if: failure()
+        run: |
+          mkdir -p .build
+          source Tools/project-environment.sh
+          tool_root="$(mise where aqua:tuist/tuist)"
+          xcodebuild -version
+          xcrun swift -suppress-warnings -I "$tool_root" -L "$tool_root" -F "$tool_root" \
+            -lProjectDescription -framework ProjectDescription Project.swift --tuist-dump \
+            > .build/manifest-diagnostic.log 2>&1 || true
+          tail -n 60 .build/manifest-diagnostic.log
+      - run: git diff --exit-code -- mise.lock Tuist/Package.resolved
+      - run: mise run release-check
+      - run: mise exec -- python3 Tools/check-generation.py
+      - run: mise run test
+      - run: mise run build
+      - name: Build drag-and-drop preview
+        run: mise exec -- python3 Tools/release.py package --tag "v$(cat version.txt)"
+      - name: Verify package contents
+        run: mise exec -- python3 Tools/verify-dmg.py "dist/release/MouseMint-$(cat version.txt)-arm64.dmg"
+      - name: Save the preview installer (not notarized)
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: MouseMint-preview-arm64
+          path: dist/release/*
+          retention-days: 3
+          if-no-files-found: error

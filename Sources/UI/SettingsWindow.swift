@@ -26,7 +26,7 @@ final class SettingsWindow: NSWindowController, NSToolbarDelegate {
             case .general: return 250
             case .naturalScrolling: return 350
             case .diagnostics: return 400
-            case .about: return 280
+            case .about: return 320
             }
         }
     }
@@ -36,6 +36,7 @@ final class SettingsWindow: NSWindowController, NSToolbarDelegate {
     let intervalSlider = NSSlider(value: 2, minValue: 0, maxValue: 4, target: nil, action: nil)
     let intervalLabel = NSTextField(labelWithString: "Every 5 seconds (default)")
     let refreshButton = NSButton(title: "Refresh Now", target: nil, action: nil)
+    let updateButton = NSButton(title: "Check for Updates…", target: nil, action: nil)
     let copyButton = NSButton(title: "Copy Diagnostics", target: nil, action: nil)
     let diagnosticsText = NSTextView()
     private(set) var selectedPane: Pane = .general
@@ -48,19 +49,23 @@ final class SettingsWindow: NSWindowController, NSToolbarDelegate {
     private var displayedInterval: Int?
     private let refreshRequested: () -> Void
     private let diagnostics: () -> String
+    private let checkForUpdates: () -> Void
+    private let canCheckForUpdates: () -> Bool
     private let pasteboard: NSPasteboard
     private var panes: [Pane: NSView] = [:]
 
     init(automaticChanged: @escaping (Bool) -> Void, naturalChanged: @escaping (Bool) -> Void,
          intervalChanged: @escaping (Int) -> Void,
          refreshRequested: @escaping () -> Void, diagnostics: @escaping () -> String,
-         pasteboard: NSPasteboard = .general) {
+         pasteboard: NSPasteboard = .general,
+         checkForUpdates: @escaping () -> Void = {}, canCheckForUpdates: @escaping () -> Bool = { false }) {
         self.automaticChanged = automaticChanged
         self.naturalChanged = naturalChanged
         self.intervalChanged = intervalChanged
         self.refreshRequested = refreshRequested
         self.diagnostics = diagnostics
         self.pasteboard = pasteboard
+        self.checkForUpdates = checkForUpdates; self.canCheckForUpdates = canCheckForUpdates
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 500, height: Pane.general.height),
             styleMask: [.titled, .closable], backing: .buffered, defer: false)
         window.title = "MouseMint Settings"
@@ -112,6 +117,7 @@ final class SettingsWindow: NSWindowController, NSToolbarDelegate {
         window.setContentSize(NSSize(width: 500, height: pane.height))
         window.toolbar?.selectedItemIdentifier = pane.identifier
         if pane == .diagnostics { updateDiagnostics() }
+        updateButton.isEnabled = canCheckForUpdates()
     }
 
     private func makePane() -> (NSView, NSStackView) {
@@ -242,10 +248,15 @@ final class SettingsWindow: NSWindowController, NSToolbarDelegate {
         add(explanation("Mouse battery and scrolling controls for macOS. Supports Keychron M3-A3 over USB cable, USB-C receiver, and Bluetooth."), to: stack)
         add(explanation("Choose how often to check status in General. Natural Scrolling automation is optional."), to: stack)
         add(explanation("Independent utility; not affiliated with Keychron."), to: stack)
+        updateButton.target = self
+        updateButton.action = #selector(checkUpdates)
+        updateButton.bezelStyle = .rounded
+        add(updateButton, to: stack)
         return view
     }
 
     func update(state scrolling: ScrollingSnapshot, refreshing: Bool = false, statusInterval: Int = StatusInterval.defaultSeconds) {
+        updateButton.isEnabled = canCheckForUpdates()
         let seconds = StatusInterval.validated(statusInterval)
         // A background refresh must not reset a slider drag in progress.
         if displayedInterval != seconds {
@@ -285,6 +296,7 @@ final class SettingsWindow: NSWindowController, NSToolbarDelegate {
     @objc private func changePane(_ sender: NSToolbarItem) {
         if let pane = Pane(rawValue: sender.itemIdentifier.rawValue) { selectPane(pane) }
     }
+    @objc private func checkUpdates() { if canCheckForUpdates() { checkForUpdates() } }
     @objc private func changeAutomatic() { automaticChanged(automaticSwitch.state == .on) }
     @objc private func changeNatural() { naturalChanged(naturalSwitch.state == .on) }
     @objc private func changeInterval() {

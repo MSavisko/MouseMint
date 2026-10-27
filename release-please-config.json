@@ -1,0 +1,34 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "packages": {
+    ".": {
+      "release-type": "simple",
+      "package-name": "MouseMint",
+      "include-component-in-tag": false,
+      "draft": true,
+      "changelog-sections": [
+        {
+          "type": "feat",
+          "section": "Features"
+        },
+        {
+          "type": "fix",
+          "section": "Fixes"
+        },
+        {
+          "type": "perf",
+          "section": "Improvements"
+        },
+        {
+          "type": "refactor",
+          "section": "Improvements"
+        },
+        {
+          "type": "docs",
+          "section": "Documentation"
+        }
+      ]
+    }
+  },
+  "bootstrap-sha": "3a19307c805f376ca5bc26fd13bd9e3da475b8b1"
+}

@@ -39,6 +39,15 @@ An App Store login alone is insufficient. Direct distribution needs a paid Apple
 
 In Xcode's account settings, create a Developer ID Application certificate for the intended team, or ask its Account Holder to create one. Apple requires the Account Holder role for an exportable Developer ID certificate; cloud-managed admin access is different. In Keychain Access, export that certificate **with its private key** as a password-protected `.p12`. An Apple Development or iPhone Distribution certificate cannot replace it. Do not commit the export.
 
+If creating it on Apple's website, select **Developer ID Application** (the bottom option in the certificate list). When Apple asks for a certificate signing request:
+
+1. Open Keychain Access on this Mac. Choose **Keychain Access → Certificate Assistant → Request a Certificate from a Certificate Authority**.
+2. Enter your email and a descriptive key name such as `MouseMint Developer ID`. Leave the certificate-authority email field blank.
+3. Save the request to disk. Upload the resulting `.certSigningRequest` file on Apple's certificate page.
+4. Download Apple's `.cer` file and open it on the same Mac. In Keychain Access, its certificate should expand to show the matching private key. Export that identity as the password-protected `.p12` needed by CI.
+
+The CSR contains public information; the matching private key is created on your Mac. A `.cer` alone cannot sign the app. See [Apple's CSR instructions](https://developer.apple.com/help/account/certificates/create-a-certificate-signing-request/).
+
 Create an App Store Connect **team API key** that can use notarization, download its `.p8`, and note its key ID and issuer ID. Keep a secure backup; Apple allows downloading the private key only once. Never paste private keys or certificate passwords into PRs, issues or chat.
 
 Configure the following encrypted secrets under **Repository Settings → Secrets and variables → Actions**:
@@ -74,6 +83,8 @@ Packaging uses macOS's `hdiutil`, Finder, and a small AppKit background renderer
 ## Verification record
 
 On 2026-10-27, the existing 56 native tests passed before changes. New updater contracts first failed against compiling stubs, then passed. New menu/About action tests first failed before wiring the controls, then passed. The full native suite now has 61 passing methods. Six Python release checks cover tag/version consistency, monotonic build versions, exact archive/feed metadata, missing credentials, the CI-only import guard and suppression of credential arguments in process failures. They failed behavior assertions before implementation. Actionlint checks workflow syntax; its runner-label extension records GitHub's new standard `xcode-27` label.
+
+Two additional Python tests exercise the real publishing shell with fake Apple/GitHub tools in disposable directories. The successful fixture uploads before publishing. Seven failure scenarios (app/DMG notarization, app/DMG stapling, feed signing, feed validation and upload) all leave the release unpublished. This brings the Python suite to eight methods and adds evidence for failure handling without accessing signing credentials or claiming real notarization.
 
 Local release generation and build passed with the locked Sparkle resolver. The DMG was mounted read-only and checked for the executable, deep signature, Applications shortcut, background and saved Finder layout. The background and updated About pane were visually inspected. The renderer also checks a fixed 680 × 420 pixel size to match Finder on both Retina and non-Retina hosts. A full Finder screenshot was not obtained: the computer-use connection was slow and only returned the desktop. This is not a claim of Apple notarization or a successful update installation.
 

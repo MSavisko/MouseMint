@@ -5,7 +5,9 @@ func testSnapshot() -> AppSnapshot {
     let backend = TestScrollingBackend()
     backend.state = .init(preference: false, live: false)
     let scrolling = AutomaticNaturalScrolling(backend: backend, preferences: TestScrollingPreferences())
-    return AppSnapshot(interval: 5, scrolling: ScrollingSnapshot(scrolling))
+    var state = AppSnapshot(interval: 5, scrolling: ScrollingSnapshot(scrolling))
+    state.configuredDeviceName = "Keychron M3"
+    return state
 }
 
 final class PresentationTests: XCTestCase {
@@ -35,6 +37,18 @@ final class PresentationTests: XCTestCase {
         view.render(state)
         XCTAssertEqual(button.title, " Read error")
         XCTAssertEqual(button.image?.accessibilityDescription, "Mouse status unavailable")
+    }
+
+    func testMenuUsesTheSelectedDriversName() {
+        var state = testSnapshot()
+        var reading = testReading()
+        reading.deviceName = "Example Mouse"
+        state.reading = reading
+        let button = NSButton()
+        let view = StatusMenu(button: button, settings: {}, quit: {})
+        view.render(state)
+        XCTAssertEqual(view.menu.items.first?.title, "Example Mouse")
+        XCTAssertTrue(button.toolTip?.hasPrefix("Example Mouse:") == true)
     }
 
     func testNativeMenuActionsUseInjectedCallbacks() throws {

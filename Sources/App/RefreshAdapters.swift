@@ -1,10 +1,5 @@
 import Foundation
 
-struct LegacyMouseReader: MouseStatusReading {
-    func read() throws -> MouseReading { try MouseReader.read() }
-    func hasDirectConnection() -> Bool { MouseReader.hasDirectConnection() }
-}
-
 final class SerialRefreshExecutor: RefreshExecuting {
     private let queue = DispatchQueue(label: "io.github.msavisko.mousemint.usb", qos: .utility)
     func execute(_ work: @escaping () -> ReadObservation, completion: @escaping (ReadObservation) -> Void) {

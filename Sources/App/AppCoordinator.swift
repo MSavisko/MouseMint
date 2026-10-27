@@ -1,6 +1,7 @@
 import Foundation
 
 protocol MouseStatusReading {
+    var deviceName: String { get }
     func read() throws -> MouseReading
     func hasDirectConnection() -> Bool
 }
@@ -32,6 +33,7 @@ final class AppCoordinator {
         self.reader = reader; self.executor = executor; self.scheduler = scheduler
         self.scrolling = scrolling; self.readOnly = readOnly
         snapshot = AppSnapshot(interval: scheduler.seconds, scrolling: ScrollingSnapshot(scrolling))
+        snapshot.configuredDeviceName = reader.deviceName
     }
     private var running = false
     private var inFlight = false

@@ -14,6 +14,8 @@ struct ScrollingSnapshot {
 }
 
 struct AppSnapshot {
+    var configuredDeviceName = "Mouse"
+    var deviceName: String { reading?.deviceName ?? configuredDeviceName }
     var reading: MouseReading?
     var failure: Error?
     var connection: MouseConnectionState = .unknown

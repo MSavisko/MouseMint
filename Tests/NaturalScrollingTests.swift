@@ -92,14 +92,14 @@ final class NaturalScrollingTests: XCTestCase {
         XCTAssertTrue(MouseReadError.disconnected.scrollingConnection(directMousePresent: true) == .connected)
         var noTarget = [UInt8](repeating: 0, count: 21)
         noTarget[0] = 0x54; noTarget[1] = 0xE4; noTarget[2] = 2
-        XCTAssertTrue(ReceiverReader.hasNoTarget(noTarget))
-        XCTAssertTrue(!ReceiverReader.hasNoTarget(Array(noTarget.prefix(3))))
+        XCTAssertTrue(KeychronM3Reports.hasNoTarget(noTarget))
+        XCTAssertTrue(!KeychronM3Reports.hasNoTarget(Array(noTarget.prefix(3))))
         for result: UInt8 in [0, 1, 3, 255] {
             var other = noTarget; other[2] = result
-            XCTAssertTrue(!ReceiverReader.hasNoTarget(other))
+            XCTAssertTrue(!KeychronM3Reports.hasNoTarget(other))
         }
         var malformed = noTarget; malformed[8] = 99
-        XCTAssertTrue(!ReceiverReader.hasNoTarget(malformed))
+        XCTAssertTrue(!KeychronM3Reports.hasNoTarget(malformed))
         print("Natural Scrolling connection, failure, retry, and persistence checks passed.")
     }
 }

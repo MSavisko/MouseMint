@@ -51,10 +51,10 @@ final class ContractTests: XCTestCase {
 
     func testUnrelatedCollectionsAndVendorsNeverMatch() {
         for pid in [0xD033, 0xD031] {
-            XCTAssertNil(ConnectionMode.identify(vendorID: 0x3434, productID: pid, transport: "USB", usagePage: 1, usage: 2))
-            XCTAssertNil(ConnectionMode.identify(vendorID: 0x1234, productID: pid, transport: "USB", usagePage: 140, usage: 1))
+            XCTAssertNil(KeychronM3Driver.identify(vendorID: 0x3434, productID: pid, transport: "USB", usagePage: 1, usage: 2))
+            XCTAssertNil(KeychronM3Driver.identify(vendorID: 0x1234, productID: pid, transport: "USB", usagePage: 140, usage: 1))
         }
-        XCTAssertNil(ConnectionMode.identify(vendorID: 0x3434, productID: 0xD030, transport: "USB", usagePage: 140, usage: 1))
+        XCTAssertNil(KeychronM3Driver.identify(vendorID: 0x3434, productID: 0xD030, transport: "USB", usagePage: 140, usage: 1))
     }
 
     func testUnknownPowerValueRemainsVisible() {
@@ -67,10 +67,10 @@ final class ContractTests: XCTestCase {
             var record: [String: Any] = ["Vendor ID": 0x3434, "Product ID": 0xD033,
                 "Transport Type": "Bluetooth LE", "Accessory Category": "Mouse",
                 "Current Capacity": value, "Max Capacity": 100]
-            XCTAssertNil(BluetoothBatteryReader.decode(record))
+            XCTAssertNil(KeychronM3Reports.decodeBluetooth(record))
             record["Current Capacity"] = 20
             record["Max Capacity"] = value
-            XCTAssertNil(BluetoothBatteryReader.decode(record))
+            XCTAssertNil(KeychronM3Reports.decodeBluetooth(record))
         }
     }
 

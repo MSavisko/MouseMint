@@ -2,6 +2,7 @@ import XCTest
 import Foundation
 
 final class TestMouseReader: MouseStatusReading {
+    let deviceName = "Keychron M3"
     var result: Result<MouseReading, Error> = .success(testReading())
     var direct = false
     var duringRead: (() -> Void)?

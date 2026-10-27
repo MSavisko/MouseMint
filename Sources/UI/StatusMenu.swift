@@ -38,13 +38,13 @@ final class StatusMenu: NSObject {
         let errorMessage = state.failure.map { String(describing: $0) }
         let connectionUnavailable = state.disconnected
         menu.removeAllItems()
-        label("Keychron M3", symbol: "computermouse")
+        label(state.deviceName, symbol: "computermouse")
         if let reading {
             let status = reading.status
             let level = status.map { "\($0.percentage)%" } ?? "—"
             button.title = " \(level)"
             button.image = ModeIcon.image(for: reading.mode)
-            button.toolTip = "Keychron M3: \(level) · \(reading.mode.title) · \(status?.powerDescription ?? "Battery unavailable")"
+            button.toolTip = "\(state.deviceName): \(level) · \(reading.mode.title) · \(status?.powerDescription ?? "Battery unavailable")"
             let connection = label("Connection: \(reading.mode.title)")
             connection.image = ModeIcon.image(for: reading.mode)
             connection.image?.size = NSSize(width: 16, height: 16)
@@ -64,7 +64,7 @@ final class StatusMenu: NSObject {
             if connectionUnavailable {
                 button.title = " Not connected"
                 button.image = ModeIcon.image(for: nil)
-                button.toolTip = "Keychron M3 is not connected. Wake the mouse or check its connection."
+                button.toolTip = "\(state.deviceName) is not connected. Wake the mouse or check its connection."
                 label("Status: Not connected", symbol: "xmark.circle")
             } else if let errorMessage {
                 button.title = " Read error"
@@ -74,7 +74,7 @@ final class StatusMenu: NSObject {
             } else {
                 button.title = " Checking…"
                 button.image = NSImage(systemSymbolName: "ellipsis.circle", accessibilityDescription: "Checking mouse connection")
-                button.toolTip = "Checking Keychron M3…"
+                button.toolTip = "Checking \(state.deviceName)…"
                 label("Checking mouse connection…", symbol: "ellipsis.circle")
             }
         }

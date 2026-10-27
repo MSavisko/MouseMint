@@ -17,6 +17,8 @@ Repository **Settings → Actions → General → Allow GitHub Actions to create
 
 The generated release PR is the review point. Routine releases need no manual packaging or release-note copying after the one-time credentials setup.
 
+Notarization submission IDs are printed before waiting for Apple's result and saved as JSON artifacts for three days, even after failure. A 20-minute wait timeout leaves the release draft; Apple continues processing the same submission. Check that existing ID with `xcrun notarytool info` or `wait` before retrying publication, which would submit newly built files again. The receipt artifacts contain no private keys.
+
 ## Downloads and updates
 
 | File | Purpose |
@@ -89,6 +91,8 @@ Packaging uses macOS's `hdiutil`, Finder, and a small AppKit background renderer
 On 2026-10-27, the existing 56 native tests passed before changes. New updater contracts first failed against compiling stubs, then passed. New menu/About action tests first failed before wiring the controls, then passed. The full native suite now has 61 passing methods. Six Python release checks cover tag/version consistency, monotonic build versions, exact archive/feed metadata, missing credentials, the CI-only import guard and suppression of credential arguments in process failures. They failed behavior assertions before implementation. Actionlint checks workflow syntax; its runner-label extension records GitHub's new standard `xcode-27` label.
 
 Two additional Python tests exercise the real publishing shell with fake Apple/GitHub tools in disposable directories. The successful fixture uploads before publishing. Seven failure scenarios (app/DMG notarization, app/DMG stapling, feed signing, feed validation and upload) all leave the release unpublished. This brings the Python suite to eight methods and adds evidence for failure handling without accessing signing credentials or claiming real notarization.
+
+A ninth Python test first failed because the publisher did not wait on a separately recorded submission. It now exercises app and DMG timeouts: the original submission ID remains available, no duplicate submission is made, and neither upload nor publication occurs. The workflow retains the JSON receipts after failure so a pending Apple review can be investigated.
 
 Local release generation and build passed with the locked Sparkle resolver. The DMG was mounted read-only and checked for the executable, deep signature, Applications shortcut, background and saved Finder layout. The background and updated About pane were visually inspected. The renderer also checks a fixed 680 × 420 pixel size to match Finder on both Retina and non-Retina hosts. A full Finder screenshot was not obtained: the computer-use connection was slow and only returned the desktop. This is not a claim of Apple notarization or a successful update installation.
 

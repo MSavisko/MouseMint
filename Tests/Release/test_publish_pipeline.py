@@ -30,8 +30,12 @@ elif name=='ditto': Path(args[-1]).write_bytes(b'fixture notarization archive')
 elif name=='xcrun':
     if args[:2]==['notarytool','submit']:
         kind='dmg' if args[2].endswith('.dmg') else 'app'
+        print(json.dumps({'id':'fixture-'+kind,'message':'Successfully uploaded file','name':Path(args[2]).name}))
+    elif args[:2]==['notarytool','wait']:
+        kind=args[2].removeprefix('fixture-')
+        if failure==kind+'-timeout': sys.exit(75)
         status='Invalid' if failure==kind+'-notary' else 'Accepted'
-        print(json.dumps({'id':'fixture-'+kind,'status':status}))
+        print(json.dumps({'id':args[2],'status':status}))
     elif args[:2]==['stapler','staple']:
         kind='dmg' if args[2].endswith('.dmg') else 'app'
         if failure==kind+'-staple': sys.exit(1)
@@ -65,10 +69,11 @@ class PublishPipelineTests(unittest.TestCase):
                 env=environment,capture_output=True,text=True)
             trace=[json.loads(line) for line in events.read_text().splitlines()]
             checksums=(folder/'dist/release/SHA256SUMS.txt').exists()
-            return result,trace,checksums
+            receipts={path.name:path.read_text() for path in (folder/'.build/notarization').glob('*.json')}
+            return result,trace,checksums,receipts
 
     def test_only_successful_pipeline_uploads_then_publishes(self):
-        result,events,checksums=self.exercise()
+        result,events,checksums,_=self.exercise()
         self.assertEqual(result.returncode,0,result.stderr)
         notarizations=[event for event in events if event[:3]==['xcrun','notarytool','submit']]
         self.assertEqual(len(notarizations),2)
@@ -83,10 +88,24 @@ class PublishPipelineTests(unittest.TestCase):
     def test_failures_leave_the_release_unpublished(self):
         for stage in ['app-notary','app-staple','dmg-notary','dmg-staple','feed-sign','feed-validate','upload']:
             with self.subTest(stage=stage):
-                result,events,_=self.exercise(stage)
+                result,events,_,_=self.exercise(stage)
                 self.assertNotEqual(result.returncode,0)
                 self.assertFalse(any(event[:3]==['gh','release','edit'] for event in events))
                 if stage!='upload':
                     self.assertFalse(any(event[:3]==['gh','release','upload'] for event in events))
+
+    def test_timeout_keeps_submission_id_without_publishing_or_resubmitting(self):
+        for kind in ['app','dmg']:
+            with self.subTest(kind=kind):
+                result,events,_,receipts=self.exercise(kind+'-timeout')
+                self.assertNotEqual(result.returncode,0)
+                self.assertIn('Notarization submitted: fixture-'+kind,result.stdout)
+                receipt=json.loads(receipts[kind+'.submission.json'])
+                self.assertEqual(receipt['id'],'fixture-'+kind)
+                waits=[event for event in events if event[:4]==['xcrun','notarytool','wait','fixture-'+kind]]
+                self.assertEqual(len(waits),1)
+                submissions=[event for event in events if event[:3]==['xcrun','notarytool','submit']]
+                self.assertEqual(len(submissions),1 if kind=='app' else 2)
+                self.assertFalse(any(event[:3] in [['gh','release','upload'],['gh','release','edit']] for event in events))
 
 if __name__=='__main__': unittest.main()

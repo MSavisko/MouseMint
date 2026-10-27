@@ -11,10 +11,24 @@ for nested in "$framework"/Versions/B/XPCServices/*.xpc "$framework/Versions/B/U
 done
 codesign --verify --deep --strict "$app"
 notarize() {
-  local target="$1" result="$2"
+  local target="$1" result="$2" submission
+  local receipt="${result%.json}.submission.json"
+  # Save the receipt before waiting: Apple continues processing after a timeout.
   xcrun notarytool submit "$target" --key "$RUNNER_TEMP/mousemint-notary.p8" \
     --key-id "$APPLE_NOTARY_KEY_ID" --issuer "$APPLE_NOTARY_ISSUER_ID" \
-    --wait --timeout 20m --output-format json > "$result"
+    --output-format json > "$receipt"
+  submission="$(python3 - "$receipt" <<'PY'
+import json,sys
+submission=json.load(open(sys.argv[1])).get('id')
+if not isinstance(submission,str) or not submission.strip():
+    raise SystemExit('Notarization submission did not return an ID')
+print(submission)
+PY
+)"
+  echo "Notarization submitted: $submission"
+  xcrun notarytool wait "$submission" --key "$RUNNER_TEMP/mousemint-notary.p8" \
+    --key-id "$APPLE_NOTARY_KEY_ID" --issuer "$APPLE_NOTARY_ISSUER_ID" \
+    --timeout 20m --output-format json > "$result"
   python3 - "$result" <<'PY'
 import json,sys
 result=json.load(open(sys.argv[1]))

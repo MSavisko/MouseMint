@@ -76,6 +76,14 @@ jobs:
           APPLE_NOTARY_ISSUER_ID: ${{ secrets.APPLE_NOTARY_ISSUER_ID }}
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
         run: mise exec -- bash Tools/publish.sh
+      - name: Save notarization submission receipts
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: notarization-receipts-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .build/notarization/*.json
+          if-no-files-found: ignore
+          retention-days: 3
       - name: Remove temporary credentials
         if: always()
         run: |

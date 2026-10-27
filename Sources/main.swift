@@ -30,14 +30,15 @@ if CommandLine.arguments.contains("--scroll-status") {
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var item: NSStatusItem!
     private let menu = NSMenu()
-    private lazy var polling = StatusPolling { [weak self] in self?.refresh() }
-    private var reading: MouseReading?
-    private var errorMessage: String?
-    private var connectionUnavailable = false
-    private var refreshing = false
+    private let polling = PollingSchedulerAdapter()
+    private lazy var coordinator = AppCoordinator(reader: LegacyMouseReader(), executor: SerialRefreshExecutor(),
+        scheduler: polling, scrolling: naturalScrolling, readOnly: CommandLine.arguments.contains("--check-ui"))
+    private var reading: MouseReading? { coordinator.snapshot.reading }
+    private var errorMessage: String? { coordinator.snapshot.failure.map { String(describing: $0) } }
+    private var connectionUnavailable: Bool { coordinator.snapshot.disconnected }
+    private var refreshing: Bool { coordinator.snapshot.refreshing }
     private let naturalScrolling = AutomaticNaturalScrolling()
     private var settingsWindow: SettingsWindow?
-    private let worker = DispatchQueue(label: "io.github.msavisko.mousemint.usb", qos: .utility)
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -45,10 +46,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         item.button?.imagePosition = .imageLeading
         item.menu = menu
         menu.delegate = self
+        coordinator.onChange = { [weak self] state in
+            guard let self else { return }
+            self.updateUI()
+            if CommandLine.arguments.contains("--check-ui"), !state.refreshing,
+               state.reading != nil || state.failure != nil { self.finishInspection() }
+        }
         updateUI()
-        refresh()
+        coordinator.start()
         if CommandLine.arguments.contains("--settings") { openSettings() }
-        polling.start()
         NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(woke),
             name: NSWorkspace.didWakeNotification, object: nil)
     }
@@ -56,62 +62,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func woke() { refresh() }
     func menuWillOpen(_ menu: NSMenu) { updateUI(); refresh() }
 
-    @objc private func refresh() {
-        guard !refreshing else { return }
-        refreshing = true
-        updateUI()
-        worker.async { [weak self] in
-            let result = Result { try MouseReader.read() }
-            let scrollConnection: MouseConnectionState
-            switch result {
-            case .success: scrollConnection = .connected
-            case .failure(let error):
-                scrollConnection = (error as? MouseReadError)?.scrollingConnection(directMousePresent: MouseReader.hasDirectConnection()) ?? .unknown
-            }
-            DispatchQueue.main.async {
-                guard let self else { return }
-                self.refreshing = false
-                switch result {
-                case .success(let value):
-                    self.reading = value
-                    self.errorMessage = nil
-                    self.connectionUnavailable = false
-                case .failure(let error):
-                    self.reading = nil
-                    self.errorMessage = String(describing: error)
-                    switch error as? MouseReadError {
-                    case .disconnected?, .receiverDisconnected?: self.connectionUnavailable = true
-                    default: self.connectionUnavailable = false
-                    }
-                }
-                // Inspection commands remain read-only; normal app refreshes
-                // apply the user's requested connection-based system setting.
-                if CommandLine.arguments.contains("--check-ui") {
-                    self.naturalScrolling.refreshStatus()
-                } else {
-                    self.naturalScrolling.update(connection: scrollConnection)
-                }
-                self.updateUI()
-                if CommandLine.arguments.contains("--check-ui") {
-                    print("Menu bar: \(self.item.button?.title ?? "missing")")
-                    print("Mode icon: \(self.item.button?.image?.accessibilityDescription ?? "missing")")
-                    for row in self.menu.items where !row.isSeparatorItem {
-                        print("\(row.title) [icon: \(row.image?.accessibilityDescription ?? "none")]")
-                    }
-                    if let settings = self.settingsWindow {
-                        print("Settings window: \(settings.window?.title ?? "missing")")
-                        print("Settings panes: \(settings.window?.toolbar?.items.map(\.label).joined(separator: ", ") ?? "missing")")
-                        print("Selected pane: \(settings.selectedPane.title)")
-                        print("Status interval: \(self.polling.seconds) seconds; timer: \(self.polling.timer?.timeInterval ?? 0)")
-                        print("Diagnostics actions: \(settings.refreshButton.title), \(settings.copyButton.title)")
-                        print("Diagnostics preview:\n\(settings.diagnosticsText.string)")
-                        print("Automatic switch: \(settings.automaticSwitch.state == .on ? "On" : "Off")")
-                        print("Manual switch: \(settings.naturalSwitch.state == .on ? "On" : "Off"); editable: \(settings.naturalSwitch.isEnabled)")
-                    }
-                    exit(self.reading == nil ? 1 : 0)
-                }
-            }
+    @objc private func refresh() { coordinator.refresh() }
+    func applicationWillTerminate(_ notification: Notification) { coordinator.stop() }
+
+    private func finishInspection() {
+        print("Menu bar: \(self.item.button?.title ?? "missing")")
+        print("Mode icon: \(self.item.button?.image?.accessibilityDescription ?? "missing")")
+        for row in self.menu.items where !row.isSeparatorItem {
+            print("\(row.title) [icon: \(row.image?.accessibilityDescription ?? "none")]")
         }
+        if let settings = self.settingsWindow {
+            print("Settings window: \(settings.window?.title ?? "missing")")
+            print("Settings panes: \(settings.window?.toolbar?.items.map(\.label).joined(separator: ", ") ?? "missing")")
+            print("Selected pane: \(settings.selectedPane.title)")
+            print("Status interval: \(self.polling.seconds) seconds; timer: \(self.polling.timer?.timeInterval ?? 0)")
+            print("Diagnostics actions: \(settings.refreshButton.title), \(settings.copyButton.title)")
+            print("Diagnostics preview:\n\(settings.diagnosticsText.string)")
+            print("Automatic switch: \(settings.automaticSwitch.state == .on ? "On" : "Off")")
+            print("Manual switch: \(settings.naturalSwitch.state == .on ? "On" : "Off"); editable: \(settings.naturalSwitch.isEnabled)")
+        }
+        exit(self.reading == nil ? 1 : 0)
     }
 
     private func menuImage(_ symbol: String, description: String) -> NSImage? {
@@ -211,16 +181,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if settingsWindow == nil {
             settingsWindow = SettingsWindow(automaticChanged: { [weak self] enabled in
                 guard let self else { return }
-                self.naturalScrolling.setAutomatic(enabled)
+                self.coordinator.setAutomatic(enabled)
                 self.updateUI()
                 if enabled { self.refresh() }
             }, naturalChanged: { [weak self] enabled in
                 guard let self else { return }
-                self.naturalScrolling.setManual(enabled)
+                self.coordinator.setNaturalScrolling(enabled)
                 self.updateUI()
             }, intervalChanged: { [weak self] seconds in
                 guard let self else { return }
-                self.polling.setSeconds(seconds)
+                self.coordinator.setInterval(seconds)
                 self.updateUI()
             }, refreshRequested: { [weak self] in
                 self?.refresh()
@@ -228,7 +198,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 self?.diagnosticsReport ?? "No diagnostic reading available."
             })
         }
-        naturalScrolling.refreshStatus()
+        coordinator.inspectScrolling()
         settingsWindow?.update(from: naturalScrolling, refreshing: refreshing, statusInterval: polling.seconds)
         settingsWindow?.present()
     }

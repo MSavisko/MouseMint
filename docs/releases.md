@@ -1,8 +1,8 @@
 # Releases
 
-MouseMint uses GitHub Actions, GitHub Releases, and Sparkle 2.10.1. Standard GitHub-hosted runners are free for this public repository. The `xcode-27` runner provides the project's exact Xcode 27.1 build; it is currently a preview image, so runner availability can change. No paid larger runner is used. CI preview artifacts expire after three days to limit storage.
+MouseMint uses GitHub Actions, GitHub Releases, and Sparkle 2.10.1. Standard GitHub-hosted runners are free for this public repository. The `xcode-27` runner provides the project's exact Xcode 27.1 build. No paid larger runner is used. CI preview artifacts expire after three days to limit storage.
 
-The pipeline was merged in [PR #1](https://github.com/MSavisko/MouseMint/pull/1). It generated [release PR #2 for 1.7.0](https://github.com/MSavisko/MouseMint/pull/2), including the version bump and release notes. **A notarized release is not available yet:** the Developer ID identity is installed on the Mac, but its CI certificate export and Apple notarization credentials still need configuration. The release PR remains unmerged.
+The pipeline was merged in [PR #1](https://github.com/MSavisko/MouseMint/pull/1). It generated [release PR #2 for 1.7.0](https://github.com/MSavisko/MouseMint/pull/2), including the version bump and release notes. That PR is merged, and [MouseMint 1.7.0](https://github.com/MSavisko/MouseMint/releases/tag/v1.7.0) is publicly available with a notarized app and drag-and-drop DMG. An actual Sparkle update installation remains to be checked.
 
 ## Normal release flow
 
@@ -16,6 +16,8 @@ The release workflow explicitly dispatches CI on the generated PR's branch, usin
 Repository **Settings → Actions → General → Allow GitHub Actions to create and approve pull requests** must be enabled for PR creation. It is enabled for MouseMint; default workflow token permissions remain read-only. The workflows do not approve or merge PRs.
 
 The generated release PR is the review point. Routine releases need no manual packaging or release-note copying after the one-time credentials setup.
+
+Release creation and release-PR generation run as separate passes. The second pass is skipped when a release was just created or any draft is awaiting publication. Otherwise, Release Please can generate a premature next-version PR using changes from the unpublished release. A failed publisher leaves its draft in place and pauses new release proposals until that draft is resolved.
 
 Notarization submission IDs are printed before waiting for Apple's result and saved as JSON artifacts for three days, even after failure. A 20-minute wait timeout leaves the release draft; Apple continues processing the same submission. Check that existing ID with `xcrun notarytool info` or `wait` before retrying publication, which would submit newly built files again. The receipt artifacts contain no private keys.
 
@@ -66,7 +68,7 @@ Configure the following encrypted secrets under **Repository Settings → Secret
 | `APPLE_NOTARY_ISSUER_ID` | API issuer UUID |
 | `SPARKLE_PRIVATE_KEY` | Sparkle Ed25519 private signing key |
 
-The Apple team ID is already configured in Actions from the installed Developer ID identity. The remaining Apple credentials are not configured yet.
+All seven secrets are configured in encrypted repository Actions secrets. The Developer ID export was checked against the installed signing identity before upload. Its password was entered through a local hidden-entry dialog and passed directly to GitHub without being printed or written into the project. The team API key authenticated successfully with Apple's notarization service. The original Apple credential files remain on the owner's Mac.
 
 The Sparkle private key is configured in encrypted Actions secrets and retained in the Mac's login Keychain under account `io.github.msavisko.mousemint.sparkle`. `Resources/SparklePublicKey.txt` contains its **public verification key**; it is safe and necessary to ship with the app. Temporary exports are removed. Keep the private key private and preserve it across releases: existing installations trust its public counterpart.
 
@@ -110,7 +112,11 @@ The final read-only native inspection passed in receiver mode (M3-A3, D031, firm
 
 After Keychain authorization, an isolated copy of MouseMint and all nested Sparkle helpers were signed with `Developer ID Application: Maksym Savisko (4KQC9K68AM)`. Deep strict signature verification, hardened runtime and the read-only native UI check passed. Gatekeeper rejected the copy with `source=Unnotarized Developer ID`, as expected before submission to Apple. Local evidence is saved in `.build/releases-developer-id-signing.json` and `.build/releases-developer-id-ui.log`; these generated files are not committed. No private key was exported by this check.
 
-Apple notarization, final release publication and an actual update installation remain unverified. No notarized release has been published. These results must be recorded before calling the release setup complete.
+[Publishing run 40569023383](https://github.com/MSavisko/MouseMint/actions/runs/40569023383) created and published 1.7.0 from exact commit `30076d3ae31192e50ac2f540fbe0f834a35d8184`. Apple accepted app submission `753511c6-2542-43f1-9726-3deb27e574db` and DMG submission `81ef7508-5abd-4ff9-81e5-0f48271e06dd`. Both tickets were stapled and validated before publication. All 61 native and eleven Python tests passed in the publisher.
+
+All four public release files were downloaded without authentication and passed their published SHA-256 checksums. The downloaded app and DMG both passed local stapler validation and Gatekeeper with `source=Notarized Developer ID`. The downloaded ZIP's Sparkle signature passed cryptographic verification with the existing Keychain signing account, and its feed passed exact version, length and URL checks. These files are retained under `.build/published-1.7.0` for local inspection.
+
+The first release also exposed a sequencing error: Release Please opened a redundant 1.8.0 proposal containing 1.7.0's changes while its draft was being published. Release and proposal creation are now separate passes, with a pending-draft check. The next release cycle must verify that this no longer occurs. An actual Sparkle update installation also remains unverified; these checks are required before calling the release setup complete.
 
 ## Sources
 

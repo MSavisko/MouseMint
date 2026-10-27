@@ -26,14 +26,30 @@ jobs:
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
-      # Bot-created pull_request runs require a writer's approval.
-      # Dispatch CI immediately too, without a long-lived PAT.
-      - name: Check the generated release PR
-        if: steps.release.outputs.prs_created == 'true'
+          skip-github-pull-request: true
+      - name: Check for an unpublished release
+        id: pending
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          RELEASE_PRS: ${{ steps.release.outputs.prs }}
+        run: |
+          pending="$(gh api --paginate --slurp "repos/$GH_REPO/releases" | jq 'any(.[][]; .draft)')"
+          printf 'exists=%s\n' "$pending" >> "$GITHUB_OUTPUT"
+      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        id: proposal
+        if: steps.release.outputs.release_created != 'true' && steps.pending.outputs.exists == 'false'
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+          skip-github-release: true
+      # Bot-created pull_request runs require a writer's approval.
+      # Dispatch CI immediately too, without a long-lived PAT.
+      - name: Check the generated release PR
+        if: steps.proposal.outputs.prs_created == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_PRS: ${{ steps.proposal.outputs.prs }}
         run: |
           while IFS= read -r branch; do
             gh workflow run ci.yml --ref "$branch"

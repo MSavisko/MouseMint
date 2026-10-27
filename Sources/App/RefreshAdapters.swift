@@ -11,11 +11,11 @@ final class SerialRefreshExecutor: RefreshExecuting {
 }
 
 final class PollingSchedulerAdapter: RefreshScheduling {
-    private let preferences: StatusPollingPreferences
+    private let preferences: StatusIntervalPreferences
     private var polling: StatusPolling?
     var seconds: Int { preferences.seconds }
     var timer: Timer? { polling?.timer }
-    init(preferences: StatusPollingPreferences = StatusPollingPreferences()) { self.preferences = preferences }
+    init(preferences: StatusIntervalPreferences) { self.preferences = preferences }
     func start(_ refresh: @escaping () -> Void) {
         stop()
         let next = StatusPolling(preferences: preferences, refresh: refresh)

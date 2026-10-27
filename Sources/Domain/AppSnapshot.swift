@@ -3,14 +3,7 @@ import Foundation
 struct ScrollingSnapshot {
     let state: NaturalScrollingState
     let automatic: Bool
-    let error: String?
-    let title: String
-    init(_ scrolling: AutomaticNaturalScrolling) {
-        state = scrolling.state
-        automatic = scrolling.isAutomatic
-        error = scrolling.errorMessage
-        title = scrolling.menuTitle
-    }
+    let failure: Error?
 }
 
 struct AppSnapshot {

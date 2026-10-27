@@ -49,8 +49,10 @@ let project = Project(
             deploymentTargets: .macOS("13.0"),
             infoPlist: nil,
             sources: [
-                "Sources/NaturalScrolling.swift",
-                "Sources/StatusPolling.swift",
+                "Sources/Domain/NaturalScrolling.swift",
+                "Sources/Domain/StatusInterval.swift",
+                "Sources/Preferences/SavedScrollingPreferences.swift",
+                "Sources/Preferences/StatusPollingPreferences.swift",
                 "Tests/Support/PreferencesPersistenceProbe.swift",
             ]
         ),

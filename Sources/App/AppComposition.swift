@@ -17,9 +17,9 @@ enum AppComposition {
     private static func runGUI(inspection: Bool, settings: Bool) -> Int32 {
         let app = NSApplication.shared
         app.setActivationPolicy(.accessory)
-        let polling = PollingSchedulerAdapter()
+        let polling = PollingSchedulerAdapter(preferences: StatusPollingPreferences())
         let coordinator = AppCoordinator(reader: reader(), executor: SerialRefreshExecutor(),
-            scheduler: polling, scrolling: AutomaticNaturalScrolling(), readOnly: inspection)
+            scheduler: polling, scrolling: AutomaticNaturalScrolling(backend: SystemNaturalScrolling(), preferences: SavedScrollingPreferences()), readOnly: inspection)
         let delegate = NativeAppDelegate(coordinator: coordinator, polling: polling, inspection: inspection, showSettings: settings)
         app.delegate = delegate
         withExtendedLifetime(delegate) { app.run() }

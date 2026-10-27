@@ -48,6 +48,8 @@ Baseline commands are `mise run test` and `mise run build`. Record their fresh r
 
 **Then change:** add shared state types and small effect interfaces, initially wrapping the existing reader and scrolling implementation. Extract refresh/state/action logic from `AppDelegate` into `Sources/App/AppCoordinator.swift`. Publish one coherent snapshot, with connection certainty independent from battery availability. Keep legacy JSON output behind an explicit output model or compatibility conversion if shared types change.
 
+Include two explicit race tests: disabling automation while a read is held must prevent a write when that read completes; a directly connected mouse discovered after a failed read must keep scrolling connection state connected, matching today's post-read presence check. Both must use controlled completions rather than sleeps.
+
 **Exit:** the coordinator is testable without AppKit or hardware. The old menu still receives equivalent state. No HID protocol changes occur in this stage. Add and verify a behavioral failure for each new seam before implementing it.
 
 ### 3. Make UI, startup and diagnostics use the coordinator
@@ -63,6 +65,8 @@ Baseline commands are `mise run test` and `mise run build`. Record their fresh r
 **Tests first:** script endpoint enumeration and transport responses. Check exact VID/PID/transport/usage matching; cable → connected Bluetooth → receiver priority; unrelated interfaces ignored; connected Bluetooth without battery; stale accessory records without a connected mouse; no-target receiver replies versus timeouts; valid and malformed captures. Verify that declared capabilities include only supported status information and transports. Assert the wired open → `51 06` feature request → reads/retries → close sequence. Assert receiver callback registration before `51 0c 02`, timeout handling, and cleanup on success and every failure. Retain observed request sizes, retry limits and timing; use controlled time for timeout tests.
 
 **Then change:** put model matching, verified capabilities, M3 command bytes, validation and decoders under `Sources/Devices/KeychronM3/`. Put HID enumeration/session access and macOS accessory enumeration under `Sources/Platform/`, behind small injected interfaces. Register the M3 driver at startup. Return shared values and typed failures; keep raw handles, callback buffers and run loops inside adapters. Convert M3 wire values into shared values at the driver boundary.
+
+Preserve selection before reading: a selected cable's failed read reports an error; a selected Bluetooth mouse with missing battery data remains selected with an unavailable percentage. Neither case silently falls through to a lower-priority receiver. Add scripted multi-endpoint tests before changing selection. Retain three wired read attempts with 0.02-second waits after unsuccessful attempts, and the receiver's 1.2-second deadline, unless a separate behavior change is agreed.
 
 **Exit:** no M3 IDs or report offsets appear in UI, coordinator or generic transport code. Driver tests use recorded reports and fake transports. Adapter tests use injected low-level operations to check callback/buffer lifetime and close/unregister ordering; they must not claim to prove macOS behavior on physical hardware. No second production driver or configuration-writing interface is added.
 
@@ -94,6 +98,7 @@ Baseline commands are `mise run test` and `mise run build`. Record their fresh r
 ## Review and execution record
 
 - Planning baseline on 2026-10-27: `mise run test` passed all four existing XCTest methods with zero failures; `mise run build` produced the signed release app successfully. Local logs: `.build/refactor-plan-baseline-tests.log` and `.build/refactor-plan-baseline-build.log`. No app source, tests, target settings, or tool versions were changed during planning. These baseline results do not close the coverage gaps listed above.
+- Source review on 2026-10-27 identified additional compatibility checks: the latest automation choice must win over an in-flight read, direct presence is rechecked after failure, and endpoint read failures do not trigger transport fallback. These checks are now explicit in stages 2 and 4. This source review is not the pending user review.
 - User review: pending. Review the sequence, preserved behavior, and per-stage checks before execution.
 - Execution: not started; all six stages above remain pending.
 

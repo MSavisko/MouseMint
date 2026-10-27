@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.1](https://github.com/MSavisko/MouseMint/compare/v1.7.0...v1.7.1) (2026-10-27)
+
+
+### Fixes
+
+* wait for publication before proposing another release ([7e98594](https://github.com/MSavisko/MouseMint/commit/7e98594e460ef643b89e051ad20dee228c1d9a65))
+
 ## [1.7.0](https://github.com/MSavisko/MouseMint/compare/v1.6.1...v1.7.0) (2026-10-27)
 
 

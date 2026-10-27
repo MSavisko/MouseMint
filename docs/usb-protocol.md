@@ -135,3 +135,13 @@ The refactored MouseMint 1.6.1 (8) was checked read-only against the same Keychr
 This is 100%, power state 2 (fully charged), USB revision `0x0123`. The wired response does not establish the firmware string; the previously observed `1.2.3r` firmware was not re-read in this check. `--check-ui --settings` showed USB cable, 100% and Fully charged in the actual native menu and diagnostic report. `--scroll-status` read saved/live Off, and saved preferences were unchanged after all three commands.
 
 Bluetooth and the D031 receiver were not physically retested during the refactor; their earlier live evidence above and captured/fake-backed tests remain separate from this cable result. See [refactoring validation](refactoring-validation.md) for the complete checks.
+
+## Sparkle/release wiring check — 2026-10-27
+
+The release-candidate build `1.6.1 (101.6.1)` was inspected with `--check-ui --settings` at `2026-10-27T18:37:50Z`. The M3-A3 was connected through its D031 USB-C 2.4 GHz receiver. Its fresh report was:
+
+```text
+54 e3 00 03 00 64 00 07 31 2e 32 2e 33 72 00 00 00 00 00 00 00
+```
+
+The actual menu and Settings report showed 100%, On battery, and receiver mode. The report carries firmware `1.2.3r`. The menu also contained Check for Updates; diagnostic startup keeps Sparkle stopped. This check did not test downloading/installing an update or Developer ID/notarized execution.

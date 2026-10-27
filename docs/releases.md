@@ -11,7 +11,7 @@ The implementation is on the release-automation PR. Local tests, packaging and r
 3. The publisher verifies that the exact release commit belongs to `main`, rebuilds and tests it, signs the app and Sparkle's nested helpers with Developer ID, submits the app to Apple, and staples the accepted ticket.
 4. It creates the DMG and ZIP from that stapled app, signs/notarizes/staples the DMG, signs the Sparkle update feed, uploads the files and checksums, then publishes the release. A failure leaves the release draft. Retrying is a manual workflow dispatch with that draft's tag and full commit SHA; published releases cannot be overwritten by this workflow.
 
-Release Please-created PRs do not trigger normal `pull_request` workflows. The release workflow explicitly dispatches CI on their branch, using the short-lived `GITHUB_TOKEN`; no personal access token is required. Repository **Settings → Actions → General → Allow GitHub Actions to create and approve pull requests** must be enabled for PR creation. The workflows do not approve or merge PRs.
+Release Please-created PRs do not trigger normal `pull_request` workflows. The release workflow explicitly dispatches CI on their branch, using the short-lived `GITHUB_TOKEN`; no personal access token is required. Repository **Settings → Actions → General → Allow GitHub Actions to create and approve pull requests** must be enabled for PR creation. It is now enabled for MouseMint; default workflow token permissions remain read-only. The workflows do not approve or merge PRs.
 
 The generated release PR is the review point. Routine releases need no manual packaging or release-note copying after the one-time credentials setup.
 
@@ -79,7 +79,9 @@ Local release generation and build passed with the locked Sparkle resolver. The 
 
 A real, signed local Sparkle feed was generated with the approved Keychain key and passed exact archive/version/URL/signature-shape validation. The generated feed is kept under `.build` and has not been published. Generation in a clean path with spaces and metadata-only cache invalidation both passed. `Tools/project-environment.sh` supplies the version and public key as Tuist environment inputs so its manifest cache cannot reuse old metadata.
 
-Real Actions, notarization and update-installation results remain pending and must be recorded before calling the release setup complete.
+The final read-only native inspection passed in receiver mode (M3-A3, D031, firmware `1.2.3r`, 100%, on battery), with Check for Updates in the real menu. See [protocol evidence](usb-protocol.md#sparklerelease-wiring-check--2026-10-27). The first Actions run exposed omitted version/config inputs in the commit; these were added before retrying.
+
+Real Actions success, notarization and update-installation results remain pending and must be recorded before calling the release setup complete.
 
 ## Sources
 

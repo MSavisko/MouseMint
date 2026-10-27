@@ -63,5 +63,5 @@ let project = Project(
             runAction: .runAction(executable: "MouseMint")
         ),
     ],
-    additionalFiles: ["README.md", "PLAN.md", "mise.toml", "mise.lock", "docs/**"]
+    additionalFiles: ["AGENTS.md", "README.md", "PLAN.md", "mise.toml", "mise.lock", "docs/**"]
 )

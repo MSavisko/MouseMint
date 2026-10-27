@@ -92,6 +92,10 @@ Independent utility; not affiliated with Keychron.
 
 Future ideas and implementation milestones are tracked in [PLAN.md](PLAN.md).
 
+## Development
+
+Follow [AGENTS.md](AGENTS.md) for project rules and checks. The [architecture guide](docs/architecture.md) describes responsibilities, device support, and how to separate the existing code gradually. See the [2026 app references](docs/architecture-references.md) for the source examples behind that choice.
+
 ## License
 
 [MIT](LICENSE) © 2026 Maksym Savisko. See [third-party notices](THIRD_PARTY_NOTICES.md) for research credits and their license.

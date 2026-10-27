@@ -44,19 +44,19 @@ final class SettingsTests: XCTestCase {
         var settings: SettingsWindow!
         settings = SettingsWindow(automaticChanged: { enabled in
             controller.setAutomatic(enabled)
-            settings.update(from: controller, statusInterval: polling.seconds)
+            settings.update(state: ScrollingSnapshot(controller), statusInterval: polling.seconds)
         }, naturalChanged: { enabled in
             controller.setManual(enabled)
-            settings.update(from: controller, statusInterval: polling.seconds)
+            settings.update(state: ScrollingSnapshot(controller), statusInterval: polling.seconds)
         }, intervalChanged: { seconds in
             polling.setSeconds(seconds)
-            settings.update(from: controller, statusInterval: polling.seconds)
+            settings.update(state: ScrollingSnapshot(controller), statusInterval: polling.seconds)
         }, refreshRequested: {
             refreshRequests += 1
         }, diagnostics: {
             report
         }, pasteboard: clipboard)
-        settings.update(from: controller, statusInterval: polling.seconds)
+        settings.update(state: ScrollingSnapshot(controller), statusInterval: polling.seconds)
         XCTAssertTrue(settings.selectedPane == .general)
         // Exercise all five slider positions and the same scheduler used by
         // the app. Changing the interval replaces, rather than adds, a timer.
@@ -76,7 +76,7 @@ final class SettingsTests: XCTestCase {
         polling.setSeconds(10)
         RunLoop.main.run(until: Date(timeIntervalSinceNow: 2.2))
         XCTAssertTrue(timerRequests == 1)
-        settings.update(from: controller, statusInterval: polling.seconds)
+        settings.update(state: ScrollingSnapshot(controller), statusInterval: polling.seconds)
         polling.timer?.invalidate()
         XCTAssertTrue(settings.automaticSwitch.state == .on)
         XCTAssertTrue(!settings.naturalSwitch.isEnabled && settings.naturalSwitch.state == .off)
@@ -119,10 +119,10 @@ final class SettingsTests: XCTestCase {
         XCTAssertTrue(settings.diagnosticsText.string == report && !settings.diagnosticsText.isEditable)
         app.sendAction(settings.refreshButton.action!, to: settings.refreshButton.target, from: settings.refreshButton)
         XCTAssertTrue(refreshRequests == 1)
-        settings.update(from: controller, refreshing: true, statusInterval: polling.seconds)
+        settings.update(state: ScrollingSnapshot(controller), refreshing: true, statusInterval: polling.seconds)
         XCTAssertTrue(!settings.refreshButton.isEnabled)
         report = "Keychron M3\nBattery: 99%\nNatural Scrolling: On"
-        settings.update(from: controller, statusInterval: polling.seconds)
+        settings.update(state: ScrollingSnapshot(controller), statusInterval: polling.seconds)
         XCTAssertTrue(settings.refreshButton.isEnabled && settings.diagnosticsText.string == report)
         app.sendAction(settings.copyButton.action!, to: settings.copyButton.target, from: settings.copyButton)
         XCTAssertTrue(clipboard.string(forType: .string) == report)
@@ -134,7 +134,7 @@ final class SettingsTests: XCTestCase {
         settings.automaticSwitch.state = .on
         app.sendAction(settings.automaticSwitch.action!, to: settings.automaticSwitch.target, from: settings.automaticSwitch)
         controller.update(connection: .connected)
-        settings.update(from: controller, statusInterval: polling.seconds)
+        settings.update(state: ScrollingSnapshot(controller), statusInterval: polling.seconds)
         XCTAssertTrue(controller.isAutomatic && !settings.naturalSwitch.isEnabled && settings.naturalSwitch.state == .off)
         XCTAssertTrue(backend.writes == 2)
         print("Settings panes, all slider intervals, timer delivery/replacement, clipboard, scrolling controls, and persistence passed.")

@@ -245,7 +245,7 @@ final class SettingsWindow: NSWindowController, NSToolbarDelegate {
         return view
     }
 
-    func update(from scrolling: AutomaticNaturalScrolling, refreshing: Bool = false, statusInterval: Int = StatusInterval.defaultSeconds) {
+    func update(state scrolling: ScrollingSnapshot, refreshing: Bool = false, statusInterval: Int = StatusInterval.defaultSeconds) {
         let seconds = StatusInterval.validated(statusInterval)
         // A background refresh must not reset a slider drag in progress.
         if displayedInterval != seconds {
@@ -254,13 +254,13 @@ final class SettingsWindow: NSWindowController, NSToolbarDelegate {
             intervalSlider.setAccessibilityValueDescription("Every \(seconds) seconds")
             displayedInterval = seconds
         }
-        automaticSwitch.state = scrolling.isAutomatic ? .on : .off
+        automaticSwitch.state = scrolling.automatic ? .on : .off
         naturalSwitch.state = scrolling.state.live.map { $0 ? .on : .off } ?? .mixed
-        naturalSwitch.isEnabled = !scrolling.isAutomatic && scrolling.state.live != nil
-        statusLabel.stringValue = scrolling.isAutomatic
+        naturalSwitch.isEnabled = !scrolling.automatic && scrolling.state.live != nil
+        statusLabel.stringValue = scrolling.automatic
             ? "Automatic switching is on. Your connection controls the setting."
             : "Automatic switching is off. Your scrolling setting stays as you choose."
-        errorLabel.stringValue = scrolling.errorMessage ?? (scrolling.state.live == nil ? "Natural Scrolling is unavailable on this macOS version." : "")
+        errorLabel.stringValue = scrolling.error ?? (scrolling.state.live == nil ? "Natural Scrolling is unavailable on this macOS version." : "")
         errorLabel.isHidden = errorLabel.stringValue.isEmpty
         refreshButton.isEnabled = !refreshing
         refreshButton.title = refreshing ? "Refreshing…" : "Refresh Now"

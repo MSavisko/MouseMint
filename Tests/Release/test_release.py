@@ -51,4 +51,12 @@ class SigningSetupTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'GitHub'):
             signing.validate_credentials({})
 
+class CredentialErrorTests(unittest.TestCase):
+    def test_process_failures_never_print_the_credential_arguments(self):
+        import subprocess
+        error=subprocess.CalledProcessError(3,['security','import','-P','fake-sensitive-password'])
+        message=signing.error_message(error)
+        self.assertNotIn('fake-sensitive-password',message)
+        self.assertIn('3',message)
+
 if __name__=='__main__': unittest.main()

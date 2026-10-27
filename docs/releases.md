@@ -73,7 +73,7 @@ Packaging uses macOS's `hdiutil`, Finder, and a small AppKit background renderer
 
 ## Verification record
 
-On 2026-10-27, the existing 56 native tests passed before changes. New updater contracts first failed against compiling stubs, then passed. New menu/About action tests first failed before wiring the controls, then passed. The full native suite now has 61 passing methods. Five Python release checks cover tag/version consistency, monotonic build versions, exact archive/feed metadata, missing credentials and the CI-only import guard. They failed behavior assertions before implementation. Actionlint checks workflow syntax; its runner-label extension records GitHub's new standard `xcode-27` label.
+On 2026-10-27, the existing 56 native tests passed before changes. New updater contracts first failed against compiling stubs, then passed. New menu/About action tests first failed before wiring the controls, then passed. The full native suite now has 61 passing methods. Six Python release checks cover tag/version consistency, monotonic build versions, exact archive/feed metadata, missing credentials, the CI-only import guard and suppression of credential arguments in process failures. They failed behavior assertions before implementation. Actionlint checks workflow syntax; its runner-label extension records GitHub's new standard `xcode-27` label.
 
 Local release generation and build passed with the locked Sparkle resolver. The DMG was mounted read-only and checked for the executable, deep signature, Applications shortcut, background and saved Finder layout. The background and updated About pane were visually inspected. The renderer also checks a fixed 680 × 420 pixel size to match Finder on both Retina and non-Retina hosts. A full Finder screenshot was not obtained: the computer-use connection was slow and only returned the desktop. This is not a claim of Apple notarization or a successful update installation.
 
@@ -81,7 +81,9 @@ A real, signed local Sparkle feed was generated with the approved Keychain key a
 
 The final read-only native inspection passed in receiver mode (M3-A3, D031, firmware `1.2.3r`, 100%, on battery), with Check for Updates in the real menu. See [protocol evidence](usb-protocol.md#sparklerelease-wiring-check--2026-10-27). The first Actions run exposed omitted version/config inputs in the commit; these were added before retrying.
 
-Real Actions success, notarization and update-installation results remain pending and must be recorded before calling the release setup complete.
+[GitHub Actions run 40562095033](https://github.com/MSavisko/MouseMint/actions/runs/40562095033) passed locked installation, generation, resolver checks, release checks, real metadata-cache checks, all 61 native tests, release build, DMG creation/verification and preview upload. The preview is an ad-hoc development installer, not a notarized release.
+
+Apple notarization, automatic release-PR publication and an actual update installation remain unverified. No notarized release has been published. These results must be recorded before calling the release setup complete.
 
 ## Sources
 

@@ -44,6 +44,13 @@ def main():
     certificate.unlink()
     print('Developer ID identity imported into the temporary release keychain.')
 
+def error_message(error):
+    if isinstance(error, subprocess.CalledProcessError):
+        # CalledProcessError's default text includes argv, including a P12 password.
+        return f'Signing credential setup failed (exit {error.returncode}); credential arguments are hidden.'
+    return str(error)
+
 if __name__=='__main__':
     try: main()
-    except ValueError as error: raise SystemExit(str(error))
+    except (ValueError, subprocess.CalledProcessError) as error:
+        raise SystemExit(error_message(error))

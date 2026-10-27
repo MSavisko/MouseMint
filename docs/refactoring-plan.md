@@ -1,6 +1,6 @@
 # Architecture refactoring plan
 
-**Status: approved; execution in progress.** Prepared 2026-10-27 against commit `5d4758a`. Follow the requested sequence: write the plan, review it together, then execute the agreed stages. This document does not authorize starting the rewrite before that review.
+**Status: approved and completed.** Prepared 2026-10-27 against commit `5d4758a`; approved and executed on 2026-10-27. The sequence was plan, user review, then the agreed stages. See [validation evidence](refactoring-validation.md).
 
 ## Goal and scope
 
@@ -19,7 +19,7 @@ Passing tests give evidence for the cases they exercise. Captured reports and fa
 
 ## Starting evidence and gaps
 
-The current suite has four XCTest methods, each containing multiple assertions:
+At planning time the suite had four XCTest methods, each containing multiple assertions:
 
 | Existing suite | Already checks | Missing coverage needed for the rewrite |
 | --- | --- | --- |
@@ -28,7 +28,7 @@ The current suite has four XCTest methods, each containing multiple assertions:
 | `PreferencesMigrationTests` | Valid/invalid/missing legacy settings, existing choices, repeated migration | Preserve these contracts through storage separation and startup/diagnostic routing |
 | `SettingsTests` | Controls, all intervals, real timer replacement/delivery, clipboard, pane renders, separate-process persistence | Menu rendering, a shared app snapshot, startup/CLI effects, and callbacks reaching the real coordinator |
 
-The app entry point and `AppDelegate` are excluded from the hostless test target. Several important behaviors therefore exist only inside `main.swift` today. `MouseReader` and the native system helpers also access macOS directly. Those are the first boundaries to make replaceable in tests.
+At planning time the app entry point and `AppDelegate` were excluded from the hostless test target. Several important behaviors existed only inside `main.swift`. `MouseReader` and the native system helpers also accessed macOS directly. Those were the first boundaries to make replaceable in tests.
 
 Baseline commands are `mise run test` and `mise run build`. Record their fresh results below before review; do not rely only on the previous migration's checks.
 
@@ -88,18 +88,18 @@ Preserve selection before reading: a selected cable's failed read reports an err
 
 ## Completion checklist
 
-- [ ] Tests were added before each production change, with failing new contracts and passing existing-behavior checks recorded.
-- [ ] UI, coordinator, drivers, platform calls and storage have the documented ownership; the coordinator has one state writer and one active read.
-- [ ] All original behavior assertions are preserved or replaced by equivalent named tests; all new tests are discovered and the persistence probe runs.
-- [ ] Read-only diagnostics, settings migration, unavailable/disconnected states, transport priority and scrolling rules retain their contracts.
-- [ ] Clean build/test, packaging, UI renders and available live checks have recorded results and limitations.
-- [ ] README, architecture guide, AGENTS and the short feature plan match the finished code.
+- [x] Tests were added before each production change, with failing new contracts and passing existing-behavior checks recorded.
+- [x] UI, coordinator, drivers, platform calls and storage have the documented ownership; the coordinator has one state writer and one active read.
+- [x] All original behavior assertions are preserved or replaced by equivalent named tests; all new tests are discovered and the persistence probe runs.
+- [x] Read-only diagnostics, settings migration, unavailable/disconnected states, transport priority and scrolling rules retain their contracts.
+- [x] Clean build/test, packaging, UI renders and available live checks have recorded results and limitations.
+- [x] README, architecture guide, AGENTS and the short feature plan match the finished code.
 
 ## Review and execution record
 
 - Planning baseline on 2026-10-27: `mise run test` passed all four existing XCTest methods with zero failures; `mise run build` produced the signed release app successfully. Local logs: `.build/refactor-plan-baseline-tests.log` and `.build/refactor-plan-baseline-build.log`. No app source, tests, target settings, or tool versions were changed during planning. These baseline results do not close the coverage gaps listed above.
 - Source review on 2026-10-27 identified additional compatibility checks: the latest automation choice must win over an in-flight read, direct presence is rechecked after failure, and endpoint read failures do not trigger transport fallback. These checks are now explicit in stages 2 and 4. This source review is not the pending user review.
 - User review: approved on 2026-10-27: “Approve and execute the plan”.
-- Execution: stage 1 in progress; stages 2–6 pending.
+- Execution: all six stages completed. The suite grew from four broad methods to 56 passing methods. Clean-source build/test, package checks, pane renders and read-only cable inspection passed. Bluetooth/receiver were not physically retested during this execution. See [validation evidence](refactoring-validation.md).
 
 After agreement, follow the test-first loop stage by stage. Bring a material scope or behavior mismatch back for review; routine implementation choices within the agreed plan do not need another approval.

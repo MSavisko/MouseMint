@@ -1,6 +1,6 @@
 # Working on MouseMint
 
-MouseMint is a native AppKit menu bar app for mouse battery status and scrolling controls. Read [the architecture guide](docs/architecture.md) before changing responsibilities or adding device support. The existing source files are still flat; the guide describes how to develop and separate them gradually.
+MouseMint is a native AppKit menu bar app for mouse battery status and scrolling controls. Read [the architecture guide](docs/architecture.md) before changing responsibilities or adding device support. The code is organized under `Sources/App`, `Domain`, `Devices`, `Platform`, `Preferences`, and `UI`; tests mirror those responsibilities.
 
 ## Build and check
 
@@ -28,7 +28,7 @@ mise run build
 
 ## Verification and delivery
 
-For architecture refactoring, follow the reviewed [refactoring plan](docs/refactoring-plan.md). Add or strengthen behavior tests before changing the implementation. Existing-behavior tests must pass before refactoring; new contracts need a meaningful failing test before their implementation. Keep every stage green before proceeding. The user requested plan review before execution; the plan records that review's status.
+For architecture refactoring, follow the reviewed [refactoring plan](docs/refactoring-plan.md). Add or strengthen behavior tests before changing the implementation. Existing-behavior tests must pass before refactoring; new contracts need a meaningful failing test before their implementation. Keep every stage green before proceeding. The user approved this plan on 2026-10-27; its execution record documents the checks.
 
 For code changes, run the relevant native tests; run the full suite and release build when changing shared behavior, targets, dependencies, or packaging. Documentation-only changes need link and diff checks; run generation if the project manifest changes.
 

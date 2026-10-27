@@ -9,9 +9,10 @@ final class ContractTests: XCTestCase {
     }
 
     func testWiredJSONContract() throws {
-        let value = MouseReading(date: Date(timeIntervalSince1970: 0),
+        var value = MouseReading(date: Date(timeIntervalSince1970: 0),
             status: BatteryStatus(percentage: 0, powerState: 0, usbRevision: 0x0123),
             rawReport: [0x51, 0x06], mode: .cable, productID: 0xD033)
+        value.deviceName = "Display metadata must not alter the public JSON"
         XCTAssertEqual(try json(value), ["date": "1970-01-01T00:00:00Z",
             "status": ["percentage": 0, "powerState": 0, "usbRevision": 291],
             "rawReport": [81, 6], "mode": "cable", "productID": 53299] as NSDictionary)

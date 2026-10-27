@@ -1,8 +1,28 @@
 import Foundation
 
-enum MouseReadError: Error, CustomStringConvertible, Equatable {
-    case disconnected, receiverDisconnected, receiverUnavailable, access(Int32), request(Int32), response(Int32), invalid
+extension BatteryStatus {
+    var powerDescription: String {
+        switch powerState {
+        case 0: return "On battery"
+        case 1: return "Charging"
+        case 2: return percentage == 100 ? "Fully charged" : "External power"
+        case nil: return "Not reported by macOS"
+        default: return "Unknown power state (\(powerState!))"
+        }
+    }
 
+}
+extension ConnectionMode {
+    var title: String {
+        switch self {
+        case .cable: return "USB cable"
+        case .receiver: return "2.4 GHz receiver"
+        case .bluetooth: return "Bluetooth"
+        }
+    }
+
+}
+extension MouseReadError: CustomStringConvertible {
     var description: String {
         switch self {
         case .disconnected: return "Connect your M3 by cable, receiver, or Bluetooth."
@@ -14,22 +34,5 @@ enum MouseReadError: Error, CustomStringConvertible, Equatable {
         case .invalid: return "The mouse returned an unrecognized status. Battery level is unavailable."
         }
     }
-    func scrollingConnection(directMousePresent: Bool) -> MouseConnectionState {
-        if directMousePresent { return .connected }
-        switch self {
-        case .disconnected, .receiverDisconnected: return .disconnected
-        default: return .unknown
-        }
-    }
     private static func hex(_ value: Int32) -> String { String(format: "0x%08x", value) }
-}
-
-struct MouseReading: Codable {
-    enum CodingKeys: String, CodingKey { case date, status, rawReport, mode, productID }
-    var deviceName: String? = nil
-    let date: Date
-    let status: BatteryStatus?
-    let rawReport: [UInt8]
-    let mode: ConnectionMode
-    let productID: Int
 }

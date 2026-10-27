@@ -20,7 +20,6 @@ struct KeychronM3Driver: MouseDeviceDriver {
         return nil
     }
 
-
     func read(_ endpoint: DeviceEndpoint, mode: ConnectionMode) throws -> MouseReading {
         if mode == .bluetooth {
             let status = accessory.records().compactMap(KeychronM3Reports.decodeBluetooth).first

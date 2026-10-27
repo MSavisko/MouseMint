@@ -36,7 +36,7 @@ let project = Project(
             deploymentTargets: .macOS("13.0"),
             sources: [
                 .glob("Sources/**", excluding: ["Sources/main.swift"]),
-                .glob("Tests/*.swift"),
+                .glob("Tests/**", excluding: ["Tests/Support/**"]),
             ],
             dependencies: [.sdk(name: "IOKit", type: .framework)],
             settings: .settings(base: ["TEST_HOST": "", "BUNDLE_LOADER": ""])

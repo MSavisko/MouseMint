@@ -156,8 +156,7 @@ final class SettingsTests: XCTestCase {
         NSImage(cgImage: representation.cgImage!, size: content.bounds.size).draw(in: content.bounds)
         preview.unlockFocus()
         let png = NSBitmapImageRep(data: preview.tiffRepresentation!)!.representation(using: .png, properties: [:])!
-        let output = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
-            .deletingLastPathComponent().appendingPathComponent(".build")
+        let output = TestProjectPaths.root.appendingPathComponent(".build")
         try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
         try png.write(to: output.appendingPathComponent("settings-\(name).png"))
     }

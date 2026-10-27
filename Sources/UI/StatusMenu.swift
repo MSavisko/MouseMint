@@ -85,7 +85,6 @@ final class StatusMenu: NSObject {
         action("Quit MouseMint", #selector(didChooseQuit), symbol: "power", key: "q")
     }
 
-
     @objc private func didChooseSettings() { settings() }
     @objc private func didChooseQuit() { quit() }
 }

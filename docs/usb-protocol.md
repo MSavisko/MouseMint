@@ -123,3 +123,15 @@ Only those device-specific fields are read. The app requires a currently enumera
 - **Back to receiver, cable unplugged:** final executable read `mode: receiver`, PID D031, fresh E3 packet with `percentage: 100`, `powerState: 0`. Native UI check confirmed `Mode icon: 2.4 GHz receiver`, `Battery: 100%`, and `Status: On battery`.
 
 Selection order is cable, connected Bluetooth mouse, responding receiver. Tests cover the mode identity and priority rules, malformed USB/receiver packets, unrelated Bluetooth battery entries, missing/invalid capacities, and legitimate 0%. The earlier computer-use tool timed out; native UI verification therefore inspects the real NSStatusItem/NSMenu state instead of claiming a screenshot-based visual check. Physical transitions and mouse identity were cross-checked through HID enumeration and the user's pointer tests.
+
+## Refactoring live check — 2026-10-27
+
+The refactored MouseMint 1.6.1 (8) was checked read-only against the same Keychron M3-A3 over USB cable, identity `3434:D033`. At `2026-10-27T15:07:13Z`, `--read-json` returned:
+
+```text
+51 06 01 00 34 34 33 d0 23 01 00 64 02 00 00 00 00 00 00 00 00
+```
+
+This is 100%, power state 2 (fully charged), USB revision `0x0123`. The wired response does not establish the firmware string; the previously observed `1.2.3r` firmware was not re-read in this check. `--check-ui --settings` showed USB cable, 100% and Fully charged in the actual native menu and diagnostic report. `--scroll-status` read saved/live Off, and saved preferences were unchanged after all three commands.
+
+Bluetooth and the D031 receiver were not physically retested during the refactor; their earlier live evidence above and captured/fake-backed tests remain separate from this cable result. See [refactoring validation](refactoring-validation.md) for the complete checks.

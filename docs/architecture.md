@@ -2,7 +2,7 @@
 
 Use a small AppKit app with clear boundaries: **UI → app coordinator → device drivers and macOS adapters**. Shared value types and policies sit underneath these parts. Keep one app target for now; folders express ownership, while protocols make hardware and system behavior replaceable in tests.
 
-This is the direction for future changes, adopted on 2026-10-27. It builds on the existing readers, scrolling backend, injected Settings callbacks, and hostless XCTest suite. The source files have not been reorganized yet. [Research from three 2026 projects](architecture-references.md) informed this choice.
+This structure was implemented on 2026-10-27 through the approved test-first refactoring plan. The original reports, user-facing behavior, settings migration, and hostless test setup are retained. [Research from three 2026 projects](architecture-references.md) informed this choice.
 
 ## Responsibilities
 
@@ -17,7 +17,7 @@ This is the direction for future changes, adopted on 2026-10-27. It builds on th
 
 Startup is the place that knows the concrete implementations. A controller receives state and callbacks; the coordinator receives a reader, scheduler and system-setting interfaces. Device drivers use transport interfaces and return plain values. Shared models do not import AppKit or IOKit. These are source-level rules today, not boundaries enforced by separate compiled modules.
 
-The existing `NaturalScrollingBackend` is a useful example: policy can be tested against a fake while `SystemNaturalScrolling` owns the macOS calls. Keep that pattern small and use it where there are real effects to replace.
+`ScrollingPolicy` returns a desired setting without performing effects. `AutomaticNaturalScrolling` in App coordinates saved choices and the `NaturalScrollingBackend`; `SystemNaturalScrolling` in Platform owns native calls. Tests cover the pure decision and application effects separately.
 
 ## State and execution
 
@@ -39,23 +39,23 @@ Capabilities describe verified support, including transport or firmware limits. 
 
 For each supported transport, record the request/response evidence and test both valid and malformed reports. Keep captured bytes distinguishable from synthetic cases. Unsupported hardware and missing macOS helpers produce an explicit unavailable state. Supporting a second real model is the point to review the driver interface against both implementations.
 
-## Where code should move as it changes
+## Current layout
 
-These are intended ownership groups, not folders already present:
-
-| Current code | Intended home and next separation |
+| Location | Implementation |
 | --- | --- |
-| `Sources/main.swift` | Keep the entry point here; extract orchestration into `Sources/App/AppCoordinator.swift` and presentation into `Sources/UI/` |
-| `BatteryStatus.swift`, `ConnectionMode.swift`, `MouseReading` | Shared values under `Sources/Domain/`; move M3 matching and byte decoding into its driver |
-| `MouseReader.swift`, `ReceiverReader.swift` | M3 implementation under `Sources/Devices/KeychronM3/`; reusable HID access under `Sources/Platform/` |
-| `BluetoothBatteryReader.swift` | macOS enumeration under `Sources/Platform/`; model matching and normalization owned by the driver |
-| `NaturalScrolling.swift` | Pure policy under `Sources/Domain/`; native calls under `Sources/Platform/`; saved choice under `Sources/Preferences/` |
-| `StatusPolling.swift`, `PreferencesMigration.swift` | Scheduling under `Sources/App/`; saved interval and migration under `Sources/Preferences/` |
-| `SettingsWindow.swift`, `ModeIcon.swift` | `Sources/UI/`; keep callbacks for user actions and pass shared view state |
+| `Sources/main.swift` | Thin command entry point |
+| `Sources/App/` | `AppComposition`, `AppCoordinator`, `CommandRunner`, native lifecycle bridge, scheduling, driver selection and scrolling effect orchestration |
+| `Sources/Domain/` | Shared snapshots, readings, transport/connection types, small effect contracts and pure scrolling/interval policy; no native calls or storage |
+| `Sources/Devices/KeychronM3/` | M3 identity, verified capabilities, report decoding, requests, retries and response handling |
+| `Sources/Platform/` | HID discovery/session access, accessory power service and native scrolling operations |
+| `Sources/Preferences/` | Saved scrolling choice, interval and one-time legacy migration |
+| `Sources/UI/` | Menu rendering, Settings, icons, diagnostic reports and display/error formatting |
+| `Tests/` | App, Domain, Devices, Platform, Preferences, UI and Integration tests; Helpers holds shared test utilities |
+| `Tests/Support/` | Separate-process preferences executable, excluded from XCTest sources |
 
-Extract the coordinator first when changing refresh behavior. Then separate device matching/decoding from transport I/O before adding a second model. Move files with the relevant feature or refactor, keeping behavior unchanged and tests green at each step. Update Tuist source/test globs and the persistence probe's explicit source paths when moving files; exclude `Tests/Support` from the XCTest source glob. Keep the app entry point excluded from hostless tests.
+Tuist includes sources and tests recursively. Keep `Sources/main.swift` and `Tests/Support/**` out of hostless test sources, and update the persistence probe's explicit inputs when changing preferences or their contracts. The Settings renderer locates the project root independently of its file's folder depth.
 
-The existing app, test and persistence-probe targets remain sufficient. Consider a separate module only when another executable needs shared code or source-level rules repeatedly fail to contain dependencies. Keep macOS 13 compatibility; adopting a newer state-management API or UI framework requires a separate compatibility decision.
+The app, test and persistence-probe targets remain sufficient. A standalone compilation of `Sources/Domain/*.swift` verifies its independence from AppKit and platform implementations. Consider another module only when an additional executable needs shared code or source-level boundaries repeatedly fail. Keep macOS 13 compatibility; adopting newer observation APIs or another UI framework requires a separate compatibility decision.
 
 ## Future profiles
 
@@ -65,4 +65,4 @@ Profiles should be plain, versioned settings values, persisted separately from l
 
 Run `mise run test` and `mise run build`. Preserve captured-report validation, connection priority, unknown/disconnected behavior, scrolling rules, migration, and the separate-process persistence check. Add a fake-backed test for new coordination behavior. Tests must not launch production polling or mutate global scrolling. Keep diagnostic modes read-only. Render affected UI and use live read-only inspection when hardware behavior changes.
 
-The day-to-day rules and commands are in [AGENTS.md](../AGENTS.md). Keep [PLAN.md](../PLAN.md) focused on requested work; documenting this architecture does not complete the source reorganization or profile feature.
+The day-to-day rules and commands are in [AGENTS.md](../AGENTS.md). Keep [PLAN.md](../PLAN.md) focused on requested work; the completed source reorganization does not implement profiles or another mouse. The [validation record](refactoring-validation.md) distinguishes automated coverage from live hardware checks.

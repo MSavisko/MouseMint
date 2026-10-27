@@ -28,6 +28,8 @@ mise run build
 
 ## Verification and delivery
 
+For architecture refactoring, follow the reviewed [refactoring plan](docs/refactoring-plan.md). Add or strengthen behavior tests before changing the implementation. Existing-behavior tests must pass before refactoring; new contracts need a meaningful failing test before their implementation. Keep every stage green before proceeding. The user requested plan review before execution; the plan records that review's status.
+
 For code changes, run the relevant native tests; run the full suite and release build when changing shared behavior, targets, dependencies, or packaging. Documentation-only changes need link and diff checks; run generation if the project manifest changes.
 
 Tests must use fake hardware/system backends, isolated preference domains, and a private pasteboard. Retain the separate-process preferences check. Hardware coverage requires an actual device run; distinguish captured-report tests from live results. Record exact model, firmware when available, transport, report bytes, and evidence in `docs/usb-protocol.md` or the device's own notes. Never infer support for a newer mouse from another model's protocol.

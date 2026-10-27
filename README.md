@@ -96,6 +96,8 @@ Future ideas and implementation milestones are tracked in [PLAN.md](PLAN.md).
 
 Follow [AGENTS.md](AGENTS.md) for project rules and checks. The [architecture guide](docs/architecture.md) describes responsibilities, device support, and how to separate the existing code gradually. See the [2026 app references](docs/architecture-references.md) for the source examples behind that choice.
 
+The [refactoring plan](docs/refactoring-plan.md) lays out the tests to add before each change and the order of implementation. It is awaiting review before execution.
+
 ## License
 
 [MIT](LICENSE) © 2026 Maksym Savisko. See [third-party notices](THIRD_PARTY_NOTICES.md) for research credits and their license.

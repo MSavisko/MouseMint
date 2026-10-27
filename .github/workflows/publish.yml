@@ -41,12 +41,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Verify trusted release source
-        run: |
-          [[ "$RELEASE_COMMIT" =~ ^[0-9a-f]{40}$ ]]
-          test "$(git rev-parse HEAD)" = "$RELEASE_COMMIT"
-          git merge-base --is-ancestor HEAD origin/main
-          test "$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft)" = true
-          test "$(gh api "repos/$GH_REPO/releases/tags/$RELEASE_TAG" --jq .target_commitish)" = "$RELEASE_COMMIT"
+        run: bash Tools/verify-release-source.sh
       - uses: jdx/mise-action@6be3c7ed4c21d4f76b208d351d95aac273ebb76d # v5.2.4
         with:
           version: 2026.6.10

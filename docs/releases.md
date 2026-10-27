@@ -2,7 +2,7 @@
 
 MouseMint uses GitHub Actions, GitHub Releases, and Sparkle 2.10.1. Standard GitHub-hosted runners are free for this public repository. The `xcode-27` runner provides the project's exact Xcode 27.1 build; it is currently a preview image, so runner availability can change. No paid larger runner is used. CI preview artifacts expire after three days to limit storage.
 
-The implementation is on the release-automation PR. Local tests, packaging and real Actions results are recorded below as they are verified. **A notarized release is not available yet:** the Developer ID certificate and Apple notarization credentials still need configuration.
+The pipeline was merged in [PR #1](https://github.com/MSavisko/MouseMint/pull/1). It generated [release PR #2 for 1.7.0](https://github.com/MSavisko/MouseMint/pull/2), including the version bump and release notes. **A notarized release is not available yet:** the Developer ID identity is installed on the Mac, but its CI certificate export and Apple notarization credentials still need configuration. The release PR remains unmerged.
 
 ## Normal release flow
 
@@ -62,6 +62,8 @@ Configure the following encrypted secrets under **Repository Settings → Secret
 | `APPLE_NOTARY_ISSUER_ID` | API issuer UUID |
 | `SPARKLE_PRIVATE_KEY` | Sparkle Ed25519 private signing key |
 
+The Apple team ID is already configured in Actions from the installed Developer ID identity. The remaining Apple credentials are not configured yet.
+
 The Sparkle private key is configured in encrypted Actions secrets and retained in the Mac's login Keychain under account `io.github.msavisko.mousemint.sparkle`. `Resources/SparklePublicKey.txt` contains its **public verification key**; it is safe and necessary to ship with the app. Temporary exports are removed. Keep the private key private and preserve it across releases: existing installations trust its public counterpart.
 
 The publisher creates an isolated temporary keychain on GitHub's disposable runner, imports only the Developer ID identity, and removes the keychain and credential files even after failure. Signing secrets are supplied only to the trusted publishing job, never PR CI. Do not enable shell tracing around credentials. Keep workflow changes reviewed; code running in the publisher can access these secrets.
@@ -94,7 +96,11 @@ The final read-only native inspection passed in receiver mode (M3-A3, D031, firm
 
 [GitHub Actions run 40562095033](https://github.com/MSavisko/MouseMint/actions/runs/40562095033) passed locked installation, generation, resolver checks, release checks, real metadata-cache checks, all 61 native tests, release build, DMG creation/verification and preview upload. The preview is an ad-hoc development installer, not a notarized release.
 
-Apple notarization, automatic release-PR publication and an actual update installation remain unverified. No notarized release has been published. These results must be recorded before calling the release setup complete.
+[Release-management run 40564771368](https://github.com/MSavisko/MouseMint/actions/runs/40564771368) completed successfully after PR #1 merged. It actually created PR #2 with `version.txt`, the release manifest and changelog changed to `1.7.0`, and explicitly dispatched CI on the bot branch ([run 40564823513](https://github.com/MSavisko/MouseMint/actions/runs/40564823513)). This verifies release-note collection and the no-PAT dispatch path. Tag `v1.6.1` records the old development baseline at `3a19307` so generated comparisons have a real starting point; it is not a notarized app release.
+
+[CI run 40563954089](https://github.com/MSavisko/MouseMint/actions/runs/40563954089) also passed the eight Python tests, 61 native tests, release build and DMG verification/upload. A valid Developer ID Application identity is now installed on the Mac. Its isolated local signing check is waiting for macOS Keychain authorization; hardened runtime has not yet been verified with that identity.
+
+Apple notarization, final release publication and an actual update installation remain unverified. No notarized release has been published. These results must be recorded before calling the release setup complete.
 
 ## Sources
 

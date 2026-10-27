@@ -6,7 +6,9 @@ Mouse battery and scrolling controls for macOS. Supports the **Keychron M3-A3** 
 
 ## Run
 
-Build the app using the commands below, then open **MouseMint.app** in the `dist` folder. Click the menu bar icon for connection mode, battery percentage, charging status, and the current Natural Scrolling state. Open **Settings…** for controls and utilities.
+Download the DMG from the [latest release](https://github.com/MSavisko/MouseMint/releases/latest), drag **MouseMint** to **Applications**, then open it. Choose **Check for Updates…** from its menu or **Settings → About** to download and install future versions.
+
+Click the menu bar icon for connection mode, battery percentage, charging status, and the current Natural Scrolling state. Open **Settings…** for controls and utilities. To build from source, use the commands below and open **MouseMint.app** in the `dist` folder.
 
 The dropdown contains status information, Settings, Check for Updates, and Quit, with native monochrome macOS symbols and the matching connection-mode icon. Utility actions and detailed errors live in Settings.
 

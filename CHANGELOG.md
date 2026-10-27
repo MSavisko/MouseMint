@@ -25,5 +25,3 @@
 
 * record Developer ID verification and release CI approval ([7d92a1d](https://github.com/MSavisko/MouseMint/commit/7d92a1d49f622680e3af186b4accf8bd3476ad18))
 * record verified release PR and signing setup ([9ae4fe1](https://github.com/MSavisko/MouseMint/commit/9ae4fe1d578dd2e60660b80a65e3719038a87910))
-
-## Changelog

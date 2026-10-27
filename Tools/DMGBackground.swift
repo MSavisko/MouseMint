@@ -21,8 +21,8 @@ arrow.move(to: NSPoint(x: 298, y: 205)); arrow.line(to: NSPoint(x: 381, y: 205))
 arrow.move(to: NSPoint(x: 368, y: 216)); arrow.line(to: NSPoint(x: 381, y: 205)); arrow.line(to: NSPoint(x: 368, y: 194))
 arrow.lineWidth = 3
 NSColor(calibratedRed: 0.24, green: 0.60, blue: 0.46, alpha: 1).setStroke(); arrow.stroke()
-text("Drag MouseMint to Applications", y: 49, font: .systemFont(ofSize: 16, weight: .medium), color: ink)
-text("Then open MouseMint from Applications.", y: 25, font: .systemFont(ofSize: 12), color: .secondaryLabelColor)
+// Leave room for Finder chrome when a user's path/status bars stay visible.
+text("Drag MouseMint to Applications", y: 85, font: .systemFont(ofSize: 16, weight: .medium), color: ink)
 NSGraphicsContext.restoreGraphicsState()
 let png = bitmap.representation(using: .png, properties: [:])!
 try png.write(to: URL(fileURLWithPath: CommandLine.arguments[1]))

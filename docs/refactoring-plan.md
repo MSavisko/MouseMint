@@ -1,6 +1,6 @@
 # Architecture refactoring plan
 
-**Status: ready for review; execution has not started.** Prepared 2026-10-27 against commit `5d4758a`. Follow the requested sequence: write the plan, review it together, then execute the agreed stages. This document does not authorize starting the rewrite before that review.
+**Status: approved; execution in progress.** Prepared 2026-10-27 against commit `5d4758a`. Follow the requested sequence: write the plan, review it together, then execute the agreed stages. This document does not authorize starting the rewrite before that review.
 
 ## Goal and scope
 
@@ -99,7 +99,7 @@ Preserve selection before reading: a selected cable's failed read reports an err
 
 - Planning baseline on 2026-10-27: `mise run test` passed all four existing XCTest methods with zero failures; `mise run build` produced the signed release app successfully. Local logs: `.build/refactor-plan-baseline-tests.log` and `.build/refactor-plan-baseline-build.log`. No app source, tests, target settings, or tool versions were changed during planning. These baseline results do not close the coverage gaps listed above.
 - Source review on 2026-10-27 identified additional compatibility checks: the latest automation choice must win over an in-flight read, direct presence is rechecked after failure, and endpoint read failures do not trigger transport fallback. These checks are now explicit in stages 2 and 4. This source review is not the pending user review.
-- User review: pending. Review the sequence, preserved behavior, and per-stage checks before execution.
-- Execution: not started; all six stages above remain pending.
+- User review: approved on 2026-10-27: “Approve and execute the plan”.
+- Execution: stage 1 in progress; stages 2–6 pending.
 
 After agreement, follow the test-first loop stage by stage. Bring a material scope or behavior mismatch back for review; routine implementation choices within the agreed plan do not need another approval.
